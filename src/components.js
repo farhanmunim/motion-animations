@@ -62,7 +62,7 @@ export const COMPONENTS = {
     thumb: "card",
     markup: `<div class="motion-target dropdown">
   <button class="dropdown-trigger" aria-expanded="false">
-    Options <span class="chevron">▾</span>
+    Options <span class="chevron"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
   </button>
   <ul class="dropdown-panel" role="menu">
     <li class="dropdown-item" role="menuitem">Profile</li>
@@ -98,8 +98,7 @@ export const COMPONENTS = {
   cursor: pointer;
 }
 .dropdown .chevron {
-  display: inline-block;
-  font-size: 12px;
+  display: inline-flex;
 }
 .dropdown-panel {
   position: absolute;
@@ -113,7 +112,7 @@ export const COMPONENTS = {
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: {{radius}}px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -12px rgba(0, 0, 0, 0.55);
   transform-origin: top left;
   pointer-events: none;
 }
@@ -172,7 +171,9 @@ export const COMPONENTS = {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(8, 8, 12, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   pointer-events: none;
 }
 .modal-dialog {
@@ -185,7 +186,8 @@ export const COMPONENTS = {
   background: #1c1c22;
   color: #fff;
   border-radius: {{radius}}px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 40px 90px -20px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   pointer-events: none;
 }
 .modal-demo.is-open .modal-backdrop,
@@ -205,7 +207,7 @@ export const COMPONENTS = {
   <button class="drawer-open" aria-expanded="false">Open menu</button>
   <div class="drawer-backdrop"></div>
   <nav class="drawer-panel">
-    <button class="drawer-close" aria-label="Close menu">×</button>
+    <button class="drawer-close" aria-label="Close menu"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <a class="drawer-link" href="#">Home</a>
     <a class="drawer-link" href="#">Projects</a>
     <a class="drawer-link" href="#">Team</a>
@@ -248,6 +250,7 @@ export const COMPONENTS = {
   background: #1c1c22;
   color: #fff;
   box-shadow: 20px 0 60px rgba(0, 0, 0, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -267,7 +270,8 @@ export const COMPONENTS = {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
-  font-size: 22px;
+  display: grid;
+  place-items: center;
   cursor: pointer;
 }
 .drawer-link {
@@ -289,7 +293,7 @@ export const COMPONENTS = {
     markup: `<div class="motion-target toast-demo">
   <button class="toast-trigger" aria-expanded="false">Show notification</button>
   <div class="toast-card" role="status">
-    <span class="toast-icon">✓</span>
+    <span class="toast-icon"><svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg></span>
     <div>
       <strong>Saved</strong>
       <span>Your changes are live.</span>
@@ -322,8 +326,9 @@ export const COMPONENTS = {
   padding: 14px 18px;
   background: #1c1c22;
   color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: {{radius}}px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -12px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
 .toast-demo.is-open .toast-card {
@@ -350,7 +355,7 @@ export const COMPONENTS = {
     markup: `<div class="motion-target accordion">
   <button class="accordion-header" aria-expanded="false">
     What is Motion Studio?
-    <span class="chevron">▾</span>
+    <span class="chevron"><svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
   </button>
   <div class="accordion-body">
     <p>A visual editor for motion.dev animations. Design it, preview it, then copy the code into your own project.</p>
@@ -367,6 +372,7 @@ export const COMPONENTS = {
   width: 320px;
   background: #1c1c22;
   color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: {{radius}}px;
   overflow: hidden;
   font-family: system-ui, sans-serif;
@@ -385,7 +391,7 @@ export const COMPONENTS = {
   text-align: left;
   cursor: pointer;
 }
-.accordion .chevron { display: inline-block; }
+.accordion .chevron { display: inline-flex; }
 .accordion-body {
   overflow: hidden;
 }
@@ -463,13 +469,15 @@ export const COMPONENTS = {
   bottom: calc(100% + 10px);
   left: 50%;
   translate: -50% 0;
+  transform-origin: bottom center;
   white-space: nowrap;
   padding: 8px 12px;
   background: #1c1c22;
   color: #fff;
   font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px -6px rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }`,
   },
@@ -480,11 +488,11 @@ export const COMPONENTS = {
     thumb: "grid",
     markup: `<div class="motion-target fab-menu">
   <div class="fab-actions">
-    <button class="fab-action" aria-label="Edit">✎</button>
-    <button class="fab-action" aria-label="Favorite">☆</button>
-    <button class="fab-action" aria-label="Share">↗</button>
+    <button class="fab-action" aria-label="Edit"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+    <button class="fab-action" aria-label="Favorite"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg></button>
+    <button class="fab-action" aria-label="Share"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></button>
   </div>
-  <button class="fab" aria-label="Actions" aria-expanded="false">+</button>
+  <button class="fab" aria-label="Actions" aria-expanded="false"><svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 </div>`,
     parts: [
       { key: "action", label: "Actions", selector: ".fab-action", multi: true },
@@ -513,15 +521,16 @@ export const COMPONENTS = {
   cursor: pointer;
   display: grid;
   place-items: center;
-  font-size: 22px;
-  line-height: 1;
+  padding: 0;
+}
+.fab .icon, .fab-action .icon {
+  display: block;
 }
 .fab {
   width: 56px;
   height: 56px;
   background: {{color}};
   color: {{text}};
-  font-size: 30px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 .fab-action {
@@ -529,6 +538,7 @@ export const COMPONENTS = {
   height: 44px;
   background: #1c1c22;
   color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }`,
   },

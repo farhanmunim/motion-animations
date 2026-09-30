@@ -22,13 +22,14 @@ export const DEFAULT_STATE = {
   trigger: "load",
   tracks: [
     { prop: "opacity", values: [0, 1] },
-    { prop: "y", values: [40, 0] },
+    { prop: "y", values: [32, 0] },
+    { prop: "blur", values: [6, 0] },
   ],
   transition: {
     type: "tween", // "tween" | "spring"
-    duration: 0.7,
+    duration: 0.9,
     delay: 0,
-    ease: "easeOut",
+    ease: "smooth",
     bezier: [0.22, 1, 0.36, 1],
     springMode: "physics", // "physics" | "visual"
     stiffness: 200,
@@ -41,10 +42,11 @@ export const DEFAULT_STATE = {
     repeatType: "loop",
     repeatDelay: 0,
   },
-  stagger: { enabled: false, each: 0.08, from: "first" },
+  stagger: { enabled: false, each: 0.06, from: "first" },
   inView: { amount: 0.5, once: true },
   scroll: { offsetStart: "start end", offsetEnd: "end start" },
   hover: { revert: true },
+  toggle: { autoClose: 0 }, // seconds; click-opened animations close again after this
 };
 
 const STORAGE_KEY = "motion-studio:design";

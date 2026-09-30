@@ -98,18 +98,37 @@ export function propLabel(key) {
   return PROPS[key]?.label ?? key;
 }
 
+/**
+ * Named cubic-bezier curves that are not built into motion.dev but show up
+ * everywhere in polished UI work. They export as plain bezier arrays.
+ */
+export const EASING_CURVES = {
+  smooth: [0.22, 1, 0.36, 1], // fast start, long soft landing
+  expoOut: [0.16, 1, 0.3, 1], // even more decisive start
+  swift: [0.4, 0, 0.2, 1], // material "standard": in and out
+  gentle: [0.25, 0.1, 0.25, 1], // classic ease, slightly softer
+};
+
 export const EASINGS = [
-  { value: "easeOut", label: "Ease out (natural)" },
-  { value: "easeInOut", label: "Ease in-out (smooth)" },
+  { value: "smooth", label: "Smooth (premium, recommended)" },
+  { value: "expoOut", label: "Expo out (decisive)" },
+  { value: "swift", label: "Swift (in and out)" },
+  { value: "gentle", label: "Gentle" },
+  { value: "easeOut", label: "Ease out" },
+  { value: "easeInOut", label: "Ease in-out" },
   { value: "easeIn", label: "Ease in (accelerate)" },
   { value: "linear", label: "Linear" },
   { value: "circOut", label: "Circ out" },
-  { value: "circInOut", label: "Circ in-out" },
   { value: "backOut", label: "Back out (overshoot)" },
-  { value: "backInOut", label: "Back in-out" },
   { value: "anticipate", label: "Anticipate (wind up)" },
   { value: "custom", label: "Custom cubic-bezier" },
 ];
+
+/** The easing value motion.dev receives: a name, or a bezier array. */
+export function resolveEase(t) {
+  if (t.ease === "custom") return t.bezier;
+  return EASING_CURVES[t.ease] || t.ease;
+}
 
 export const TRIGGERS = [
   { value: "load", label: "On load", hint: "Plays as soon as the element appears on the page." },

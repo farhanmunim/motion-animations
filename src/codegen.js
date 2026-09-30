@@ -7,7 +7,7 @@
  *   - a complete standalone HTML file for trying it out
  *   - the CSS that makes the exported element look like the preview
  */
-import { Raw, buildKeyframes, buildFromValues, buildPlan, buildTransition, effectiveTrigger, isMulti, scrollOffset, staggerCode, targetSelector } from "./compile.js";
+import { Raw, buildKeyframes, buildFromValues, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
 import { elementMarkup } from "./preview.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
@@ -96,14 +96,21 @@ function generateComponentVanilla(state, importFrom) {
 
   const open = {};
   const closed = {};
-  const staggered = [];
+  const overrides = {}; // per-part extras: stagger delay, keyframe timing
   for (const e of plan) {
     const key = e.selector ?? ":scope";
     open[key] = e.open;
     closed[key] = e.from;
-    if (e.multi && state.stagger.enabled) staggered.push(key);
+    const extra = {};
+    if (e.multi && state.stagger.enabled) {
+      extra.delay = new Raw(staggerCode(state));
+      imports.add("stagger");
+    }
+    for (const [prop, times] of Object.entries(buildTimes(state, e.part))) extra[prop] = { inherit: true, times };
+    if (Object.keys(extra).length) overrides[key] = extra;
   }
-  if (staggered.length) imports.add("stagger");
+  const hasOverrides = Object.keys(overrides).length > 0;
+  const autoClose = trigger === "toggle" ? autoCloseSeconds(state) : 0;
 
   const body = [];
   body.push(`const root = document.querySelector(".motion-target");`, "");
@@ -116,15 +123,15 @@ function generateComponentVanilla(state, importFrom) {
     `const closed = ${js(closed)};`,
     "",
   );
-  if (staggered.length) {
-    body.push(
-      "// Parts that animate one item after another.",
-      `const staggered = ${js(Object.fromEntries(staggered.map((k) => [k, new Raw(staggerCode(state))])))};`,
-      "",
-    );
+  if (hasOverrides) {
+    body.push("// Extra options for some parts: stagger between items, keyframe timing.", `const overrides = ${js(overrides)};`, "");
   }
+  body.push("let isOpen = false;");
+  if (autoClose) body.push("let closeTimer;");
   body.push(
-    "function setOpen(isOpen) {",
+    "",
+    "function setOpen(next) {",
+    "  isOpen = next;",
     `  root.classList.toggle("is-open", isOpen);`,
     "  // Keep screen readers informed.",
     `  for (const el of [root, ...root.querySelectorAll("[aria-expanded], [aria-checked]")]) {`,
@@ -132,10 +139,15 @@ function generateComponentVanilla(state, importFrom) {
     "  }",
     "  const values = isOpen ? open : closed;",
     "  for (const selector in values) {",
-    staggered.length
-      ? "    animate(root.querySelectorAll(selector), values[selector], { ...transition, delay: staggered[selector] ?? transition.delay });"
+    hasOverrides
+      ? "    animate(root.querySelectorAll(selector), values[selector], { ...transition, ...overrides[selector] });"
       : "    animate(root.querySelectorAll(selector), values[selector], transition);",
     "  }",
+  );
+  if (autoClose) {
+    body.push("  // Close again automatically.", "  clearTimeout(closeTimer);", `  if (isOpen) closeTimer = setTimeout(() => setOpen(false), ${autoClose * 1000});`);
+  }
+  body.push(
     "}",
     "",
     "// Start closed, without animating.",
@@ -146,11 +158,10 @@ function generateComponentVanilla(state, importFrom) {
   switch (trigger) {
     case "toggle": {
       const clickers = comp.clicks.length ? comp.clicks.join(", ") : null;
-      body.push("let isOpen = false;");
       if (clickers) {
-        body.push(`for (const el of root.querySelectorAll(${js(clickers)})) {`, "  el.addEventListener(\"click\", () => setOpen((isOpen = !isOpen)));", "}");
+        body.push(`for (const el of root.querySelectorAll(${js(clickers)})) {`, "  el.addEventListener(\"click\", () => setOpen(!isOpen));", "}");
       } else {
-        body.push(`root.addEventListener("click", () => setOpen((isOpen = !isOpen)));`);
+        body.push(`root.addEventListener("click", () => setOpen(!isOpen));`);
       }
       break;
     }
@@ -171,7 +182,7 @@ function generateComponentVanilla(state, importFrom) {
       body.push("// Open as soon as this script runs.", "setOpen(true);");
   }
 
-  return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body.filter((l) => l !== "")].join("\n").replace(/\n{3,}/g, "\n\n");
+  return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
 }
 
 /* --- Vanilla JS --------------------------------------------------------- */
@@ -201,14 +212,17 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
 
   switch (state.trigger) {
     case "toggle": {
+      const autoClose = autoCloseSeconds(state);
+      body.push("// Click to play, click again to reverse.", "let isOpen = false;");
+      if (autoClose) body.push("let closeTimer;");
       body.push(
-        "// Click to play, click again to reverse.",
-        "let isOpen = false;",
-        `document.querySelector(${js(wrapper)}).addEventListener("click", () => {`,
-        "  isOpen = !isOpen;",
+        "",
+        "function setOpen(next) {",
+        "  isOpen = next;",
         `  animate(${js(selector)}, isOpen ? keyframes : ${js(from, 1)}, transition);`,
-        "});",
       );
+      if (autoClose) body.push("  clearTimeout(closeTimer);", `  if (isOpen) closeTimer = setTimeout(() => setOpen(false), ${autoClose * 1000});`);
+      body.push("}", "", `document.querySelector(${js(wrapper)}).addEventListener("click", () => setOpen(!isOpen));`);
       break;
     }
     case "hover": {

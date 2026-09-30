@@ -16,7 +16,7 @@ export const PRESETS = [
     state: {
       trigger: "load",
       tracks: [{ prop: "opacity", values: [0, 1] }],
-      transition: tween(0.8, "easeOut"),
+      transition: tween(1, "smooth"),
     },
   },
   {
@@ -28,9 +28,10 @@ export const PRESETS = [
       trigger: "load",
       tracks: [
         { prop: "opacity", values: [0, 1] },
-        { prop: "y", values: [40, 0] },
+        { prop: "y", values: [32, 0] },
+        { prop: "blur", values: [6, 0] },
       ],
-      transition: tween(0.7, "easeOut"),
+      transition: tween(0.9, "smooth"),
     },
   },
   {
@@ -44,7 +45,7 @@ export const PRESETS = [
         { prop: "x", values: [-160, 0] },
         { prop: "opacity", values: [0, 1] },
       ],
-      transition: tween(0.6, "custom", { bezier: [0.22, 1, 0.36, 1] }),
+      transition: tween(0.8, "smooth"),
     },
   },
   {
@@ -58,7 +59,7 @@ export const PRESETS = [
         { prop: "scale", values: [0.4, 1] },
         { prop: "opacity", values: [0, 1] },
       ],
-      transition: spring(320, 18),
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.5, bounce: 0.35 },
     },
   },
   {
@@ -85,9 +86,9 @@ export const PRESETS = [
       tracks: [
         { prop: "blur", values: [16, 0] },
         { prop: "opacity", values: [0, 1] },
-        { prop: "scale", values: [1.1, 1] },
+        { prop: "scale", values: [1.08, 1] },
       ],
-      transition: tween(0.9, "easeOut"),
+      transition: tween(1.1, "smooth"),
     },
   },
   {
@@ -101,7 +102,7 @@ export const PRESETS = [
         { prop: "rotateY", values: [-90, 0] },
         { prop: "opacity", values: [0, 1] },
       ],
-      transition: tween(0.8, "backOut"),
+      transition: tween(0.9, "expoOut"),
     },
   },
   {
@@ -116,6 +117,21 @@ export const PRESETS = [
         { prop: "scale", values: [0, 1] },
       ],
       transition: spring(180, 16),
+    },
+  },
+  {
+    id: "in-hold-out",
+    name: "In, hold, out",
+    emoji: "⏱️",
+    tags: ["attention"],
+    state: {
+      trigger: "load",
+      element: { type: "card" },
+      tracks: [
+        { prop: "opacity", values: [0, 1, 1, 0], times: [0, 0.12, 0.85, 1] },
+        { prop: "y", values: [30, 0, 0, -20], times: [0, 0.12, 0.85, 1] },
+      ],
+      transition: tween(3.5, "easeInOut"),
     },
   },
   {
@@ -188,11 +204,11 @@ export const PRESETS = [
       trigger: "hover",
       element: { type: "card" },
       tracks: [
-        { prop: "y", values: [0, -10] },
-        { prop: "scale", values: [1, 1.03] },
-        { prop: "shadow", values: [0, 40] },
+        { prop: "y", values: [0, -8] },
+        { prop: "scale", values: [1, 1.02] },
+        { prop: "shadow", values: [0, 36] },
       ],
-      transition: spring(300, 22),
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.35, bounce: 0.2 },
     },
   },
   {
@@ -204,11 +220,11 @@ export const PRESETS = [
       trigger: "hover",
       element: { type: "card" },
       tracks: [
-        { prop: "rotateX", values: [0, 12] },
-        { prop: "rotateY", values: [0, -12] },
+        { prop: "rotateX", values: [0, 10] },
+        { prop: "rotateY", values: [0, -10] },
         { prop: "scale", values: [1, 1.04] },
       ],
-      transition: tween(0.35, "easeOut"),
+      transition: tween(0.45, "smooth"),
     },
   },
   {
@@ -219,8 +235,8 @@ export const PRESETS = [
     state: {
       trigger: "press",
       element: { type: "button" },
-      tracks: [{ prop: "scale", values: [1, 0.92] }],
-      transition: spring(500, 30),
+      tracks: [{ prop: "scale", values: [1, 0.94] }],
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.25, bounce: 0.3 },
     },
   },
   {
@@ -233,10 +249,10 @@ export const PRESETS = [
       element: { type: "card" },
       tracks: [
         { prop: "opacity", values: [0, 1] },
-        { prop: "y", values: [60, 0] },
+        { prop: "y", values: [48, 0] },
         { prop: "blur", values: [8, 0] },
       ],
-      transition: tween(0.8, "easeOut"),
+      transition: tween(1, "smooth"),
       inView: { amount: 0.4, once: false },
     },
   },
@@ -250,10 +266,11 @@ export const PRESETS = [
       element: { type: "list", count: 5 },
       tracks: [
         { prop: "opacity", values: [0, 1] },
-        { prop: "x", values: [-40, 0] },
+        { prop: "y", values: [24, 0] },
+        { prop: "blur", values: [4, 0] },
       ],
-      transition: tween(0.5, "easeOut"),
-      stagger: { enabled: true, each: 0.09, from: "first" },
+      transition: tween(0.7, "smooth"),
+      stagger: { enabled: true, each: 0.07, from: "first" },
     },
   },
   {
@@ -265,11 +282,11 @@ export const PRESETS = [
       trigger: "load",
       element: { type: "list", count: 6 },
       tracks: [
-        { prop: "scale", values: [0.6, 1] },
+        { prop: "scale", values: [0.7, 1] },
         { prop: "opacity", values: [0, 1] },
       ],
-      transition: spring(260, 18),
-      stagger: { enabled: true, each: 0.07, from: "center" },
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.5, bounce: 0.3 },
+      stagger: { enabled: true, each: 0.06, from: "center" },
     },
   },
   {
@@ -285,7 +302,7 @@ export const PRESETS = [
         { prop: "y", values: [24, 0] },
         { prop: "blur", values: [6, 0] },
       ],
-      transition: tween(0.6, "custom", { bezier: [0.22, 1, 0.36, 1] }),
+      transition: tween(0.8, "smooth"),
       stagger: { enabled: true, each: 0.08, from: "first" },
     },
   },
@@ -349,7 +366,7 @@ export const PRESETS = [
         { prop: "blur", values: [10, 0] },
         { prop: "scale", values: [0.9, 1] },
       ],
-      transition: tween(0.7, "easeOut"),
+      transition: tween(0.9, "smooth"),
       stagger: { enabled: true, each: 0.1, from: "first" },
       inView: { amount: 0.5, once: false },
     },
@@ -384,7 +401,7 @@ export const PRESETS = [
         { prop: "opacity", values: [0, 1] },
         { prop: "blur", values: [12, 0] },
       ],
-      transition: tween(0.45, "custom", { bezier: [0.16, 1, 0.3, 1] }),
+      transition: tween(0.55, "expoOut"),
       stagger: { enabled: true, each: 0.07, from: "first" },
     },
   },
@@ -401,7 +418,7 @@ export const PRESETS = [
         { prop: "skewX", values: [25, 0] },
         { prop: "opacity", values: [0, 1] },
       ],
-      transition: tween(0.6, "custom", { bezier: [0.22, 1, 0.36, 1] }),
+      transition: tween(0.8, "smooth"),
       stagger: { enabled: true, each: 0.1, from: "first" },
     },
   },
@@ -436,7 +453,7 @@ export const PRESETS = [
         { prop: "blur", values: [10, 0] },
         { prop: "scale", values: [1.15, 1] },
       ],
-      transition: tween(1.8, "custom", { bezier: [0.16, 1, 0.3, 1] }),
+      transition: tween(1.8, "expoOut"),
     },
   },
   {
@@ -509,11 +526,11 @@ export const PRESETS = [
       element: { type: "grid", count: 9 },
       tracks: [
         { prop: "opacity", values: [0, 1] },
-        { prop: "scale", values: [0.7, 1] },
-        { prop: "y", values: [30, 0] },
+        { prop: "scale", values: [0.85, 1] },
+        { prop: "y", values: [24, 0] },
       ],
-      transition: spring(220, 20),
-      stagger: { enabled: true, each: 0.06, from: "first" },
+      transition: tween(0.8, "smooth"),
+      stagger: { enabled: true, each: 0.05, from: "first" },
     },
   },
   {
@@ -618,8 +635,8 @@ export const PRESETS = [
         { part: "item", prop: "x", values: [-8, 0] },
         { part: "chevron", prop: "rotate", values: [0, 180] },
       ],
-      transition: tween(0.22, "easeOut"),
-      stagger: { enabled: true, each: 0.04, from: "first" },
+      transition: tween(0.3, "smooth"),
+      stagger: { enabled: true, each: 0.03, from: "first" },
     },
   },
   {
@@ -633,10 +650,10 @@ export const PRESETS = [
       tracks: [
         { part: "backdrop", prop: "opacity", values: [0, 1] },
         { part: "dialog", prop: "opacity", values: [0, 1] },
-        { part: "dialog", prop: "scale", values: [0.9, 1] },
-        { part: "dialog", prop: "y", values: [16, 0] },
+        { part: "dialog", prop: "scale", values: [0.94, 1] },
+        { part: "dialog", prop: "y", values: [12, 0] },
       ],
-      transition: spring(320, 28),
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.4, bounce: 0.15 },
     },
   },
   {
@@ -653,7 +670,7 @@ export const PRESETS = [
         { part: "link", prop: "opacity", values: [0, 1] },
         { part: "link", prop: "x", values: [-24, 0] },
       ],
-      transition: tween(0.4, "custom", { bezier: [0.22, 1, 0.36, 1] }),
+      transition: tween(0.5, "smooth"),
       stagger: { enabled: true, each: 0.05, from: "first" },
     },
   },
@@ -667,10 +684,11 @@ export const PRESETS = [
       element: { type: "toast" },
       tracks: [
         { part: "card", prop: "opacity", values: [0, 1] },
-        { part: "card", prop: "y", values: [24, 0] },
-        { part: "card", prop: "scale", values: [0.95, 1] },
+        { part: "card", prop: "y", values: [20, 0] },
+        { part: "card", prop: "scale", values: [0.96, 1] },
       ],
-      transition: spring(300, 24),
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.45, bounce: 0.3 },
+      toggle: { autoClose: 3 },
     },
   },
   {
@@ -686,7 +704,7 @@ export const PRESETS = [
         { part: "body", prop: "opacity", values: [0, 1] },
         { part: "chevron", prop: "rotate", values: [0, 180] },
       ],
-      transition: tween(0.35, "easeOut"),
+      transition: tween(0.45, "smooth"),
     },
   },
   {
@@ -715,9 +733,9 @@ export const PRESETS = [
       tracks: [
         { part: "tip", prop: "opacity", values: [0, 1] },
         { part: "tip", prop: "y", values: [6, 0] },
-        { part: "tip", prop: "scale", values: [0.95, 1] },
+        { part: "tip", prop: "scale", values: [0.96, 1] },
       ],
-      transition: tween(0.18, "easeOut"),
+      transition: tween(0.25, "smooth"),
     },
   },
   {
@@ -734,7 +752,7 @@ export const PRESETS = [
         { part: "action", prop: "y", values: [16, 0] },
         { part: "action", prop: "scale", values: [0.6, 1] },
       ],
-      transition: spring(380, 22),
+      transition: { type: "spring", springMode: "visual", visualDuration: 0.4, bounce: 0.3 },
       stagger: { enabled: true, each: 0.05, from: "last" },
     },
   },

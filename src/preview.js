@@ -3,7 +3,7 @@
  * real motion.dev functions so the preview behaves exactly like the export.
  */
 import { animate, hover, press, inView, scroll, stagger } from "motion";
-import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger } from "./compile.js";
+import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds } from "./compile.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
 let cleanup = [];
@@ -150,24 +150,31 @@ export function renderPreview(stage, state, setStatus) {
     : inner;
   stage.scrollTop = 0;
 
-  const root = stage.querySelector(".motion-target");
+  // The root: the component / element, or the list / grid wrapper.
+  const root = stage.querySelector(".motion-target") || stage.querySelector(".stage-inner")?.lastElementChild;
   if (!root) return () => {};
 
   const plan = buildPlan(state)
     .map((entry) => ({ ...entry, els: resolveEntry(stage, root, state, entry) }))
     .filter((entry) => entry.els.length && Object.keys(entry.keyframes).length);
   const hasTracks = plan.length > 0;
-  const options = (multi) => buildTransition(state, { mode: "js", staggerFn: stagger, multi });
+  const options = (multi, part = null) => buildTransition(state, { mode: "js", staggerFn: stagger, multi, part });
 
   let isOpen = false;
+  let closeTimer;
+  cleanup.push(() => clearTimeout(closeTimer));
   const setOpen = (open) => {
     isOpen = open;
+    clearTimeout(closeTimer);
+    if (open && trigger === "toggle" && autoCloseSeconds(state)) {
+      closeTimer = setTimeout(() => setOpen(false), autoCloseSeconds(state) * 1000);
+    }
     root.classList.toggle("is-open", open);
     for (const el of [root, ...root.querySelectorAll("[aria-expanded], [aria-checked]")]) {
       for (const attr of ["aria-expanded", "aria-checked"]) if (el.hasAttribute(attr)) el.setAttribute(attr, String(open));
     }
     for (const a of activeAnimations) a.stop?.();
-    activeAnimations = plan.map((e) => animate(e.els, open ? e.keyframes : e.from, options(e.multi)));
+    activeAnimations = plan.map((e) => animate(e.els, open ? e.keyframes : e.from, options(e.multi, e.part)));
   };
   const play = () => setOpen(true);
   const revert = () => setOpen(false);
@@ -205,11 +212,11 @@ export function renderPreview(stage, state, setStatus) {
         cleanup.push(
           hover(t, () => {
             if (component) play();
-            else activeAnimations.push(...plan.map((e) => animate(t, e.keyframes, options(false))));
+            else activeAnimations.push(...plan.map((e) => animate(t, e.keyframes, options(false, e.part))));
             return () => {
               if (!state.hover.revert) return;
               if (component) revert();
-              else activeAnimations.push(...plan.map((e) => animate(t, e.from, options(false))));
+              else activeAnimations.push(...plan.map((e) => animate(t, e.from, options(false, e.part))));
             };
           }),
         );
@@ -224,10 +231,10 @@ export function renderPreview(stage, state, setStatus) {
         cleanup.push(
           press(t, () => {
             if (component) play();
-            else activeAnimations.push(...plan.map((e) => animate(t, e.keyframes, options(false))));
+            else activeAnimations.push(...plan.map((e) => animate(t, e.keyframes, options(false, e.part))));
             return () => {
               if (component) revert();
-              else activeAnimations.push(...plan.map((e) => animate(t, e.from, options(false))));
+              else activeAnimations.push(...plan.map((e) => animate(t, e.from, options(false, e.part))));
             };
           }),
         );
@@ -257,7 +264,7 @@ export function renderPreview(stage, state, setStatus) {
       setStatus("Scroll the preview: the animation follows your scroll position");
       if (!hasTracks) return () => {};
       for (const e of plan) {
-        const anim = animate(e.els, e.keyframes, options(e.multi));
+        const anim = animate(e.els, e.keyframes, options(e.multi, e.part));
         activeAnimations.push(anim);
         cleanup.push(scroll(anim, { container: stage, target: viewTarget, offset: scrollOffset(state) }));
       }

@@ -3,9 +3,9 @@
  * Code views. Plain DOM, no framework, so it stays tiny and hackable.
  */
 import { animate } from "motion";
-import { PROPS, PROP_GROUPS, EASINGS, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel } from "./props.js";
+import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase } from "./props.js";
 import { PRESETS } from "./presets.js";
-import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger } from "./compile.js";
+import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes } from "./compile.js";
 import { generateAll } from "./codegen.js";
 import { COMPONENTS, isComponent, partLabel } from "./components.js";
 import { merge, clone, DEFAULT_STATE } from "./state.js";
@@ -166,7 +166,7 @@ function thumbTransition(preset) {
     ? t.springMode === "visual"
       ? { type: "spring", visualDuration: t.visualDuration, bounce: t.bounce }
       : { type: "spring", stiffness: t.stiffness, damping: t.damping, mass: t.mass }
-    : { duration: Math.min(t.duration, 1.2), ease: t.ease === "custom" ? t.bezier : t.ease };
+    : { duration: Math.min(t.duration, 1.2), ease: resolveEase(t) };
   if (t.infinite) Object.assign(base, { repeat: 3, repeatType: t.repeatType });
   return base;
 }
@@ -487,6 +487,21 @@ function renderTriggerSection(state, set) {
   const current = TRIGGERS.find((t) => t.value === trigger);
   kids.push(h("p", { class: "hint" }, current?.hint || ""));
 
+  if (trigger === "toggle") {
+    kids.push(
+      numberField({
+        label: "Close after",
+        value: state.toggle?.autoClose ?? 0,
+        min: 0,
+        max: 15,
+        step: 0.5,
+        unit: "s",
+        hint: "Play the reverse automatically after this many seconds. 0 keeps it open until the next click.",
+        onInput: (v) => set({ toggle: { autoClose: v } }),
+      }),
+      h("p", { class: "hint" }, "Great for toasts and notices: open on click, close on their own."),
+    );
+  }
   if (trigger === "hover") {
     kids.push(toggleField({ label: "Revert when the pointer leaves", value: state.hover.revert, onChange: (v) => set({ hover: { revert: v } }) }));
   }
@@ -560,6 +575,7 @@ function renderTracksSection(state, set, store) {
   const subtitle = comp
     ? "First value = closed, last value = open. Pick a part of the component, then a property."
     : "Each property goes from its first value to its last. Add keyframes for in-between steps.";
+  kids.push(h("p", { class: "hint" }, "Want a property to change, hold, then change again? Add keyframes to that property and set when each one happens."));
   return section("Animate", subtitle, ...kids);
 }
 
@@ -603,10 +619,13 @@ function defaultTo(key, state) {
 
 function trackCard(track, index, state, set, store) {
   const def = PROPS[track.prop] || { label: track.prop, kind: "number", min: -100, max: 100, step: 1 };
-  const updateValues = (values, rerender = false) => {
-    const tracks = state.tracks.map((t, i) => (i === index ? { ...t, values } : t));
+  const times = trackTimes(track);
+  const timed = state.transition.type === "tween" || effectiveTrigger(state) === "scroll";
+  const updateTrack = (patch, rerender = false) => {
+    const tracks = state.tracks.map((t, i) => (i === index ? { ...t, ...patch } : t));
     store.patch({ tracks }, { rerender });
   };
+  const updateValues = (values, rerender = false) => updateTrack({ values }, rerender);
 
   const head = h(
     "div",
@@ -620,9 +639,11 @@ function trackCard(track, index, state, set, store) {
         type: "button",
         title: "Add a keyframe",
         onClick: () => {
+          // Duplicate the last value: a "hold", ready to be changed.
           const last = track.values[track.values.length - 1];
-          const first = track.values[0];
-          updateValues([...track.values, def.kind === "color" ? first : last], true);
+          const n = track.values.length;
+          const nextTimes = hasCustomTimes(track) ? [...times.map((t) => Math.round(t * ((n - 1) / n) * 1000) / 1000), 1] : undefined;
+          updateTrack({ values: [...track.values, last], times: nextTimes }, true);
         },
       },
       "+ keyframe",
@@ -641,8 +662,17 @@ function trackCard(track, index, state, set, store) {
   );
 
   const rows = h("div", { class: "keyframes" });
+  const n = track.values.length;
+
+  // Timeline strip: where each keyframe sits within the duration.
+  let strip = null;
+  if (n > 2) {
+    strip = h("div", { class: `timeline ${timed ? "" : "muted"}`, title: timed ? "Keyframe positions within the duration" : "Springs play keyframes evenly. Switch Timing to Timed for precise positions." });
+    times.forEach((t, vi) => strip.append(h("span", { class: "tl-dot", style: `left:${t * 100}%` }, h("i", {}, `${Math.round(t * 100)}%`))));
+  }
+
   track.values.forEach((value, vi) => {
-    const label = vi === 0 ? "From" : vi === track.values.length - 1 ? "To" : `Step ${vi}`;
+    const label = vi === 0 ? "From" : vi === n - 1 ? "To" : `Step ${vi}`;
     let control;
     if (def.kind === "color") {
       control = colorField({
@@ -670,7 +700,34 @@ function trackCard(track, index, state, set, store) {
       });
     }
     const row = h("div", { class: "keyframe-row" }, control);
-    if (track.values.length > 2) {
+    if (n > 2 && timed) {
+      const isEdge = vi === 0 || vi === n - 1;
+      const at = h("input", {
+        type: "number",
+        class: "at",
+        min: 0,
+        max: 100,
+        step: 1,
+        value: Math.round(times[vi] * 100),
+        disabled: isEdge,
+        title: isEdge ? "First and last keyframes are fixed at 0% and 100%" : "When this keyframe is reached, as a % of the duration",
+        "aria-label": "Keyframe position (%)",
+        onInput: (e) => {
+          if (isEdge) return;
+          const lo = times[vi - 1] * 100 + 1;
+          const hi = times[vi + 1] * 100 - 1;
+          const v = Math.min(hi, Math.max(lo, Number(e.target.value)));
+          if (!Number.isFinite(v)) return;
+          const next = [...times];
+          next[vi] = Math.round(v * 10) / 1000;
+          updateTrack({ times: next });
+          if (strip) strip.children[vi].style.left = `${next[vi] * 100}%`;
+          strip?.children[vi].querySelector("i") && (strip.children[vi].querySelector("i").textContent = `${Math.round(next[vi] * 100)}%`);
+        },
+      });
+      row.append(h("label", { class: "at-wrap" }, at, h("span", {}, "%")));
+    }
+    if (n > 2) {
       row.append(
         h(
           "button",
@@ -679,7 +736,17 @@ function trackCard(track, index, state, set, store) {
             type: "button",
             title: "Remove this keyframe",
             "aria-label": "Remove keyframe",
-            onClick: () => updateValues(track.values.filter((_, i) => i !== vi), true),
+            onClick: () => {
+              const values = track.values.filter((_, i) => i !== vi);
+              let nextTimes;
+              if (hasCustomTimes(track)) {
+                const kept = times.filter((_, i) => i !== vi);
+                const lo = kept[0];
+                const hi = kept[kept.length - 1];
+                nextTimes = kept.map((t) => Math.round(((t - lo) / (hi - lo || 1)) * 1000) / 1000);
+              }
+              updateTrack({ values, times: nextTimes }, true);
+            },
           },
           "–",
         ),
@@ -688,7 +755,11 @@ function trackCard(track, index, state, set, store) {
     rows.append(row);
   });
 
-  return h("div", { class: "track" }, head, rows);
+  const card = h("div", { class: "track" }, head);
+  if (strip) card.append(strip);
+  card.append(rows);
+  if (n > 2) card.append(h("p", { class: "hint tiny" }, timed ? "Each keyframe's % is when it is reached within the duration. Repeat a value to hold it." : "Springs play keyframes evenly. Switch Timing to Timed to position them."));
+  return card;
 }
 
 function renderTimingSection(state, set) {
@@ -804,6 +875,9 @@ function easingFields(state, set) {
       onChange: (v) => set({ transition: { ease: v } }, true),
     }),
   );
+  if (EASING_CURVES[t.ease]) {
+    wrap.append(bezierPreview(EASING_CURVES[t.ease]));
+  }
   if (t.ease === "custom") {
     const bez = [...t.bezier];
     const inputs = bez.map((v, i) =>

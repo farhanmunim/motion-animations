@@ -2,7 +2,7 @@
  * Turns the editor state into the raw pieces motion.dev needs. Both the live
  * preview and the code exporter use these so what you see is what you export.
  */
-import { motionKey, toMotionValue } from "./props.js";
+import { motionKey, toMotionValue, resolveEase } from "./props.js";
 import { getComponent, isComponent } from "./components.js";
 
 /** Tracks that belong to a part (undefined part = the element itself). */
@@ -37,6 +37,35 @@ export function buildOpenValues(state, part) {
     if (!t.values?.length) continue;
     const vals = t.values.map((v) => toMotionValue(t.prop, v));
     out[motionKey(t.prop)] = vals.length > 2 ? vals : vals[vals.length - 1];
+  }
+  return out;
+}
+
+/** Evenly spaced keyframe positions: [0, 0.5, 1] for three keyframes. */
+export function evenTimes(n) {
+  if (n < 2) return [0];
+  return Array.from({ length: n }, (_, i) => Math.round((i / (n - 1)) * 1000) / 1000);
+}
+
+/** Keyframe positions for a track (fractions of the duration), always valid. */
+export function trackTimes(track) {
+  const n = track.values?.length || 0;
+  if (!track.times || track.times.length !== n) return evenTimes(n);
+  return track.times;
+}
+
+/** True when a track's keyframes are not evenly spaced. */
+export function hasCustomTimes(track) {
+  const even = evenTimes(track.values?.length || 0);
+  return trackTimes(track).some((t, i) => Math.abs(t - even[i]) > 0.0005);
+}
+
+/** `{ opacity: [0, 0.1, 0.85, 1] }` for tracks with custom keyframe positions. */
+export function buildTimes(state, part) {
+  const out = {};
+  if (state.transition.type === "spring" && effectiveTrigger(state) !== "scroll") return out;
+  for (const t of tracksFor(state, part)) {
+    if (t.values?.length > 2 && hasCustomTimes(t)) out[motionKey(t.prop)] = trackTimes(t);
   }
   return out;
 }
@@ -109,14 +138,22 @@ export class Raw {
  * preview) or "code" (values ready to be serialized into source code).
  * `multi` says whether the stagger applies to this target.
  */
-export function buildTransition(state, { mode = "js", staggerFn = null, multi = isMulti(state) } = {}) {
+export function buildTransition(state, { mode = "js", staggerFn = null, multi = isMulti(state), part = null } = {}) {
   const t = state.transition;
   const opts = {};
 
+  // Per-property keyframe positions (motion reads options[propertyName]).
+  const timing = buildTimes(state, part);
+  // `inherit: true` keeps duration / easing from the main transition.
+  const withTiming = (o) => {
+    for (const [key, times] of Object.entries(timing)) o[key] = { inherit: true, times };
+    return o;
+  };
+
   if (effectiveTrigger(state) === "scroll") {
     // Scroll-linked animations are scrubbed, so only easing matters.
-    opts.ease = t.ease === "custom" ? t.bezier : t.ease;
-    return opts;
+    opts.ease = resolveEase(t);
+    return withTiming(opts);
   }
 
   if (t.type === "spring") {
@@ -131,7 +168,7 @@ export function buildTransition(state, { mode = "js", staggerFn = null, multi = 
     }
   } else {
     opts.duration = num(t.duration);
-    opts.ease = t.ease === "custom" ? t.bezier : t.ease;
+    opts.ease = resolveEase(t);
   }
 
   const delay = num(t.delay);
@@ -154,7 +191,13 @@ export function buildTransition(state, { mode = "js", staggerFn = null, multi = 
     if (num(t.repeatDelay) > 0) opts.repeatDelay = num(t.repeatDelay);
   }
 
-  return opts;
+  return withTiming(opts);
+}
+
+/** Seconds before a click-opened animation closes itself (0 = never). */
+export function autoCloseSeconds(state) {
+  const n = Number(state.toggle?.autoClose);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /** `stagger(0.08, { startDelay: 0.2, from: "center" })` as source code. */
