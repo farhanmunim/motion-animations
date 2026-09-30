@@ -1314,6 +1314,7 @@ kbd {
   border-radius: var(--r-sm);
   border: 1px solid var(--border-c);
   background: var(--muted-bg);
+  color: var(--text-1);
   font-size: var(--fs-xs);
   line-height: 1.4;
 }
