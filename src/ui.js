@@ -137,13 +137,13 @@ export function section(title, subtitle, ...children) {
 /* --- Library sidebar -------------------------------------------------- */
 
 const CATEGORIES = [
-  { id: "entrance", label: "Entrance", tag: "entrance" },
-  { id: "text", label: "Text", tag: "text" },
-  { id: "multiple", label: "Multiple elements", tag: "multiple" },
-  { id: "interaction", label: "Hover & press", tag: "interaction" },
-  { id: "scroll", label: "Scroll", tag: "scroll" },
-  { id: "loop", label: "Loops & attention", tag: "loop", extra: "attention" },
-  { id: "component", label: "UI components", tag: "component" },
+  { id: "component", label: "UI components", short: "Components", tag: "component" },
+  { id: "entrance", label: "Entrances", short: "Entrances", tag: "entrance" },
+  { id: "text", label: "Text", short: "Text", tag: "text" },
+  { id: "multiple", label: "Lists & grids", short: "Lists", tag: "multiple" },
+  { id: "interaction", label: "Hover & press", short: "Hover", tag: "interaction" },
+  { id: "scroll", label: "Scroll", short: "Scroll", tag: "scroll" },
+  { id: "loop", label: "Loops & attention", short: "Loops", tag: "loop", extra: "attention" },
 ];
 
 /** Thumbnail values are scaled down so the mini preview fits the card. */
@@ -193,42 +193,126 @@ function thumbMarkup(preset) {
   return `<span class="th-box"><i></i></span>`;
 }
 
-export function renderLibrary(container, { onEdit, onCopy, activeId }) {
+const ICON_COPY = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;
+const ICON_EDIT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+
+/** Stable per-preset category: the first tag that has a category. */
+function primaryCategory(preset) {
+  return CATEGORIES.find((c) => preset.tags.includes(c.tag) || (c.extra && preset.tags.includes(c.extra)))?.id || "entrance";
+}
+
+let libraryFilter = "all";
+let collapsed = new Set();
+try {
+  collapsed = new Set(JSON.parse(localStorage.getItem("motion-studio:collapsed") || "[]"));
+  libraryFilter = localStorage.getItem("motion-studio:filter") || "all";
+} catch {
+  /* ignore */
+}
+function remember() {
+  try {
+    localStorage.setItem("motion-studio:collapsed", JSON.stringify([...collapsed]));
+    localStorage.setItem("motion-studio:filter", libraryFilter);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function renderLibrary(container, { onEdit, onCopy, activeId, dirty = false }) {
   container.innerHTML = "";
-  const search = h("input", { type: "search", class: "search", placeholder: "Search library…", "aria-label": "Search presets" });
+  const search = h("input", { type: "search", class: "search", placeholder: "Search…", "aria-label": "Search presets" });
+  const chips = h("div", { class: "chips", role: "tablist" });
   const list = h("div", { class: "library-groups" });
-  container.append(search, list);
+  container.append(search, chips, list);
+
+  const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, PRESETS.filter((p) => primaryCategory(p) === c.id).length]));
+  const drawChips = () => {
+    chips.innerHTML = "";
+    for (const c of [{ id: "all", label: "All" }, ...CATEGORIES]) {
+      chips.append(
+        h(
+          "button",
+          {
+            type: "button",
+            class: `chip ${libraryFilter === c.id ? "active" : ""}`,
+            role: "tab",
+            "aria-selected": libraryFilter === c.id ? "true" : "false",
+            onClick: () => {
+              libraryFilter = c.id;
+              remember();
+              drawChips();
+              draw(search.value);
+            },
+          },
+          c.short || c.label,
+          c.id !== "all" ? h("span", { class: "chip-count" }, counts[c.id]) : null,
+        ),
+      );
+    }
+  };
 
   const draw = (q = "") => {
     list.innerHTML = "";
     const query = q.trim().toLowerCase();
+    const matches = (p) => !query || p.name.toLowerCase().includes(query) || p.tags.join(" ").includes(query);
     for (const cat of CATEGORIES) {
-      const items = PRESETS.filter(
-        (p) => (p.tags.includes(cat.tag) || (cat.extra && p.tags.includes(cat.extra))) && (!query || p.name.toLowerCase().includes(query) || p.tags.join(" ").includes(query)),
-      );
+      if (libraryFilter !== "all" && libraryFilter !== cat.id) continue;
+      const items = PRESETS.filter((p) => primaryCategory(p) === cat.id && matches(p));
       if (!items.length) continue;
-      const group = h("div", { class: "library-group" }, h("h4", {}, cat.label));
-      for (const p of items) group.append(presetCard(p, { onEdit, onCopy, active: p.id === activeId }));
+      const isCollapsed = libraryFilter === "all" && !query && collapsed.has(cat.id);
+      const head = h(
+        "button",
+        {
+          type: "button",
+          class: `group-head ${isCollapsed ? "collapsed" : ""}`,
+          "aria-expanded": isCollapsed ? "false" : "true",
+          onClick: () => {
+            if (collapsed.has(cat.id)) collapsed.delete(cat.id);
+            else collapsed.add(cat.id);
+            remember();
+            draw(search.value);
+          },
+        },
+        h("span", { class: "group-chev", "aria-hidden": "true" }, "▾"),
+        h("span", {}, cat.label),
+        h("span", { class: "group-count" }, items.length),
+      );
+      const group = h("div", { class: "library-group" }, head);
+      if (!isCollapsed) for (const p of items) group.append(presetCard(p, { onEdit, onCopy, active: p.id === activeId, dirty }));
       list.append(group);
     }
     if (!list.children.length) list.append(h("p", { class: "hint pad" }, "Nothing matches. Try another word."));
   };
   search.addEventListener("input", () => draw(search.value));
+  drawChips();
   draw();
 }
 
-function presetCard(preset, { onEdit, onCopy, active }) {
+function presetCard(preset, { onEdit, onCopy, active, dirty }) {
   const thumb = h("div", { class: "thumb", html: thumbMarkup(preset) });
   const card = h(
     "div",
     { class: `preset-card ${active ? "active" : ""}`, tabindex: 0, role: "button", "aria-label": `Edit ${preset.name}` },
     thumb,
-    h("div", { class: "preset-meta" }, h("span", { class: "preset-name" }, preset.emoji, " ", preset.name)),
+    h(
+      "div",
+      { class: "preset-meta" },
+      h("span", { class: "preset-name" }, preset.name),
+      active ? h("span", { class: "badge" }, dirty ? "edited" : "editing") : null,
+    ),
     h(
       "div",
       { class: "preset-actions" },
-      h("button", { class: "btn tiny", type: "button", title: "Copy the JavaScript for this preset", onClick: (e) => { e.stopPropagation(); onCopy(preset); } }, "Copy"),
-      h("button", { class: "btn tiny primary", type: "button", onClick: (e) => { e.stopPropagation(); onEdit(preset); } }, "Edit"),
+      h(
+        "button",
+        { class: "btn tiny icon-btn", type: "button", title: "Copy code", "aria-label": `Copy code for ${preset.name}`, onClick: (e) => { e.stopPropagation(); onCopy(preset); } },
+        h("span", { html: ICON_COPY }),
+      ),
+      h(
+        "button",
+        { class: "btn tiny icon-btn primary", type: "button", title: "Edit", "aria-label": `Edit ${preset.name}`, onClick: (e) => { e.stopPropagation(); onEdit(preset); } },
+        h("span", { html: ICON_EDIT }),
+      ),
     ),
   );
   card.addEventListener("click", () => onEdit(preset));
@@ -259,15 +343,48 @@ function presetCard(preset, { onEdit, onCopy, active }) {
 
 /* --- Design inspector ---------------------------------------------------- */
 
-export function renderDesign(container, store) {
+/** True when the current design no longer matches the preset it came from. */
+export function isDirty(state) {
+  if (!state.presetId) return false;
+  const preset = PRESETS.find((p) => p.id === state.presetId);
+  if (!preset) return false;
+  const expected = merge(clone(DEFAULT_STATE), { ...preset.state, name: preset.name, presetId: preset.id });
+  const pick = (s) => JSON.stringify([s.element, s.trigger, s.tracks, s.transition, s.stagger, s.inView, s.scroll, s.hover]);
+  return pick(expected) !== pick(state);
+}
+
+export function renderDesign(container, store, { headerOnly = false } = {}) {
   const state = store.get();
   const set = (patch, rerender = false) => store.patch(patch, { rerender });
+  if (headerOnly) {
+    const old = container.querySelector(".design-head");
+    if (old) old.replaceWith(renderHeader(state, set, store));
+    return;
+  }
   container.innerHTML = "";
 
+  container.append(renderHeader(state, set, store));
   container.append(renderElementSection(state, set));
   container.append(renderTriggerSection(state, set));
   container.append(renderTracksSection(state, set, store));
   container.append(renderTimingSection(state, set));
+}
+
+function renderHeader(state, set, store) {
+  const preset = state.presetId ? PRESETS.find((p) => p.id === state.presetId) : null;
+  const dirty = isDirty(state);
+  const name = h("input", { type: "text", class: "design-name", value: state.name, "aria-label": "Animation name", onInput: (e) => set({ name: e.target.value }) });
+  const origin = preset
+    ? h(
+        "p",
+        { class: "hint origin" },
+        dirty ? `Edited copy of “${preset.name}”. ` : `Unchanged from “${preset.name}”. `,
+        dirty
+          ? h("button", { type: "button", class: "link", onClick: () => store.replace({ ...preset.state, name: preset.name, presetId: preset.id }, { rerender: true }) }, "Revert to preset")
+          : null,
+      )
+    : h("p", { class: "hint origin" }, "Start from a preset on the left, or build from scratch here.");
+  return h("div", { class: "design-head" }, name, origin);
 }
 
 function renderElementSection(state, set) {
@@ -280,11 +397,16 @@ function renderElementSection(state, set) {
       value: el.type,
       options: ELEMENT_TYPES,
       onChange: (v) => {
-        // Tracks are tied to parts of a specific component, so they do not carry over.
-        const switchingKind = isComponent(v) || isComponent(el.type);
         const patch = { element: { type: v } };
-        if (switchingKind) patch.tracks = [];
-        if (isComponent(v) && !COMPONENTS[v].triggers.includes(state.trigger)) patch.trigger = COMPONENTS[v].triggers[0];
+        if (isComponent(v)) {
+          // Components come with a working default animation for their parts.
+          const def = PRESETS.find((p) => p.state.element?.type === v);
+          if (def) Object.assign(patch, clone(def.state), { element: { ...def.state.element, color: el.color, textColor: el.textColor, radius: el.radius } });
+          if (!COMPONENTS[v].triggers.includes(patch.trigger || state.trigger)) patch.trigger = COMPONENTS[v].triggers[0];
+        } else if (isComponent(el.type)) {
+          // Part-based tracks make no sense on a plain element: start with a simple fade up.
+          patch.tracks = clone(DEFAULT_STATE.tracks);
+        }
         set(patch, true);
       },
     }),

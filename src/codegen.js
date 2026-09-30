@@ -53,22 +53,30 @@ function needsSplit(state) {
 
 const SPLIT_HELPER = `/**
  * Splits a heading into <span class="motion-item"> per word or character so
- * each piece can be animated separately. Spaces are left as plain text.
+ * each piece can be animated separately. Spaces are left as plain text, and
+ * in "chars" mode the letters of a word are grouped so words never break.
  */
 function splitText(element, mode = "words") {
   const text = element.textContent;
-  const parts = mode === "chars" ? [...text] : text.split(/(\\s+)/);
   element.textContent = "";
   element.setAttribute("aria-label", text);
-  for (const part of parts) {
-    if (part.trim() === "") {
-      element.append(part);
-      continue;
-    }
+  const item = (content) => {
     const span = document.createElement("span");
     span.className = "motion-item";
-    span.textContent = part;
-    element.append(span);
+    span.textContent = content;
+    return span;
+  };
+  for (const part of text.split(/(\\s+)/)) {
+    if (part.trim() === "") {
+      element.append(part);
+    } else if (mode === "chars") {
+      const word = document.createElement("span");
+      word.className = "motion-word";
+      for (const ch of part) word.append(item(ch));
+      element.append(word);
+    } else {
+      element.append(item(part));
+    }
   }
 }`;
 
@@ -285,8 +293,9 @@ export function generateCss(state) {
 }`);
   }
   if (needsSplit(state)) {
-    css.push(`/* Each word / letter animates on its own. */
-.motion-item {
+    css.push(`/* Each word / letter animates on its own; words never break apart. */
+.motion-item,
+.motion-word {
   display: inline-block;
   white-space: pre;
 }`);

@@ -43,9 +43,12 @@ function escapeHtml(s) {
 export function splitMarkup(text, mode) {
   const raw = String(text || "Hello");
   if (mode === "chars") {
-    return [...raw]
-      .map((ch) => (ch.trim() === "" ? " " : `<span class="motion-item">${escapeHtml(ch)}</span>`))
-      .join("");
+    // Letters are grouped per word so lines never break in the middle of a word.
+    return raw
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => `<span class="motion-word">${[...w].map((ch) => `<span class="motion-item">${escapeHtml(ch)}</span>`).join("")}</span>`)
+      .join(" ");
   }
   return raw
     .split(/\s+/)

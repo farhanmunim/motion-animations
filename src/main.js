@@ -1,6 +1,6 @@
 import { createStore, clone, DEFAULT_STATE } from "./state.js";
 import { renderPreview } from "./preview.js";
-import { renderLibrary, renderDesign, renderCode, copy } from "./ui.js";
+import { renderLibrary, renderDesign, renderCode, copy, isDirty } from "./ui.js";
 import { generateVanilla } from "./codegen.js";
 import { merge } from "./state.js";
 
@@ -64,6 +64,7 @@ function schedulePreview(immediate = false) {
 function drawLibrary() {
   renderLibrary(libraryPanel, {
     activeId: store.get().presetId,
+    dirty: isDirty(store.get()),
     onEdit: (preset) => {
       store.replace({ ...preset.state, name: preset.name, presetId: preset.id }, { rerender: true });
       showView("stage");
@@ -86,11 +87,18 @@ function drawAll(meta = {}) {
   }
 }
 
+let lastDirty = null;
 store.subscribe((state, meta) => {
   // `rerender: false` means a slider moved: keep the inputs, refresh the rest.
   const structural = meta.rerender !== false;
   drawAll(meta);
-  if (structural) drawLibrary();
+  const dirty = isDirty(state);
+  if (structural || dirty !== lastDirty) {
+    drawLibrary();
+    // Keep the inspector's "edited / revert" line in sync without a full re-render.
+    if (!structural) renderDesign(designPanel, store, { headerOnly: true });
+  }
+  lastDirty = dirty;
   if (structural || $("#auto-replay").checked) schedulePreview(structural);
 });
 
