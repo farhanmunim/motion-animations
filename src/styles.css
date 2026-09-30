@@ -833,7 +833,7 @@ pre.code code {
 }
 
 /* ---------- Modal ---------- */
-.modal-backdrop {
+.app-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
@@ -843,7 +843,7 @@ pre.code code {
   z-index: 50;
   backdrop-filter: blur(4px);
 }
-.modal {
+.app-modal {
   width: min(880px, 100%);
   max-height: 90vh;
   background: var(--bg-2);
