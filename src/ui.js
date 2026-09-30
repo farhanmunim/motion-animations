@@ -39,8 +39,8 @@ function fmt(n, step) {
 
 /** Slider + numeric input pair. */
 export function numberField({ label, value, min, max, step = 1, unit = "", hint, onInput }) {
-  const range = h("input", { type: "range", min, max, step, value });
-  const num = h("input", { type: "number", min, max, step, value: fmt(value, step), class: "num" });
+  const range = h("input", { type: "range", min, max, step, value, "aria-label": `${label} slider` });
+  const num = h("input", { type: "number", min, max, step, value: fmt(value, step), class: "num", "aria-label": label });
   range.addEventListener("input", () => {
     num.value = fmt(range.value, step);
     onInput(Number(range.value));
@@ -81,8 +81,8 @@ export function textField({ label, value, placeholder, onInput, multiline = fals
 }
 
 export function colorField({ label, value, onInput }) {
-  const color = h("input", { type: "color", value });
-  const hex = h("input", { type: "text", class: "hex", value, maxlength: 7 });
+  const color = h("input", { type: "color", value, "aria-label": `${label} picker` });
+  const hex = h("input", { type: "text", class: "hex", value, maxlength: 7, "aria-label": `${label} hex value` });
   color.addEventListener("input", () => {
     hex.value = color.value;
     onInput(color.value);
@@ -102,8 +102,8 @@ export function toggleField({ label, value, hint, onChange }) {
 }
 
 /** A row of mutually exclusive buttons. */
-export function segmented({ value, options, onChange, hints = {} }) {
-  const wrap = h("div", { class: "segmented", role: "radiogroup" });
+export function segmented({ value, options, onChange, hints = {}, label }) {
+  const wrap = h("div", { class: "segmented", role: "radiogroup", "aria-label": label });
   for (const o of options) {
     const btn = h(
       "button",
@@ -292,13 +292,13 @@ function presetCard(preset, { onEdit, onCopy, active, dirty }) {
   const thumb = h("div", { class: "thumb", html: thumbMarkup(preset) });
   const card = h(
     "div",
-    { class: `preset-card ${active ? "active" : ""}`, tabindex: 0, role: "button", "aria-label": `Edit ${preset.name}` },
+    { class: `preset-card ${active ? "active" : ""}` },
     thumb,
     h(
       "div",
       { class: "preset-meta" },
-      h("span", { class: "preset-name" }, preset.name),
-      active ? h("span", { class: "badge" }, dirty ? "edited" : "editing") : null,
+      h("button", { type: "button", class: "preset-name", "aria-label": `Edit ${preset.name}`, onClick: (e) => { e.stopPropagation(); onEdit(preset); } }, preset.name),
+      active && dirty ? h("span", { class: "badge" }, "edited") : null,
     ),
     h(
       "div",
@@ -308,20 +308,17 @@ function presetCard(preset, { onEdit, onCopy, active, dirty }) {
         { class: "btn tiny icon-btn", type: "button", title: "Copy code", "aria-label": `Copy code for ${preset.name}`, onClick: (e) => { e.stopPropagation(); onCopy(preset); } },
         h("span", { html: ICON_COPY }),
       ),
-      h(
-        "button",
-        { class: "btn tiny icon-btn primary", type: "button", title: "Edit", "aria-label": `Edit ${preset.name}`, onClick: (e) => { e.stopPropagation(); onEdit(preset); } },
-        h("span", { html: ICON_EDIT }),
-      ),
+      active
+        ? null
+        : h(
+            "button",
+            { class: "btn tiny icon-btn primary", type: "button", title: "Edit", "aria-label": `Edit ${preset.name}`, onClick: (e) => { e.stopPropagation(); onEdit(preset); } },
+            h("span", { html: ICON_EDIT }),
+          ),
     ),
   );
+  // The whole row is a mouse target; keyboard users get the name and icon buttons.
   card.addEventListener("click", () => onEdit(preset));
-  card.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onEdit(preset);
-    }
-  });
 
   let playing = null;
   const play = () => {
@@ -337,7 +334,7 @@ function presetCard(preset, { onEdit, onCopy, active, dirty }) {
     playing = animate(targets, kf, tr);
   };
   card.addEventListener("pointerenter", play);
-  card.addEventListener("focus", play);
+  card.addEventListener("focusin", play);
   return card;
 }
 
@@ -479,6 +476,7 @@ function renderTriggerSection(state, set) {
   const trigger = effectiveTrigger(state);
   kids.push(
     segmented({
+      label: "Trigger",
       value: trigger,
       options,
       onChange: (v) => set({ trigger: v }, true),
@@ -546,7 +544,7 @@ function renderTracksSection(state, set, store) {
 
   if (!state.tracks.length) kids.push(h("p", { class: "hint pad" }, "No properties yet. Add one below to get moving."));
 
-  const addSel = h("select", { class: "add-prop" }, h("option", { value: "" }, "+ Add a property…"));
+  const addSel = h("select", { class: "add-prop", "aria-label": "Add a property to animate" }, h("option", { value: "" }, "+ Add a property…"));
   const addOptions = (part) => {
     for (const group of PROP_GROUPS) {
       const og = h("optgroup", { label: part ? `${part.label} · ${group}` : group });
@@ -774,6 +772,7 @@ function renderTimingSection(state, set) {
 
   kids.push(
     segmented({
+      label: "Timing type",
       value: t.type,
       options: [
         { value: "tween", label: "Timed", hint: "A fixed duration with an easing curve." },
@@ -789,6 +788,7 @@ function renderTimingSection(state, set) {
   } else {
     kids.push(
       segmented({
+        label: "Spring mode",
         value: t.springMode,
         options: [
           { value: "visual", label: "Simple", hint: "Pick how long it should feel and how bouncy." },
@@ -933,22 +933,25 @@ export function renderCode(container, state, { onToast, full = false }) {
   const code = generateAll(state);
   container.innerHTML = "";
 
-  const tabs = h("div", { class: "code-tabs", role: "tablist" });
+  const tabs = h("div", { class: "code-tabs", role: "tablist", "aria-label": "Code format" });
   const tabHint = h("p", { class: "hint" });
-  const pre = h("pre", { class: "code" });
+  const pre = h("pre", { class: "code", tabindex: 0, "aria-label": "Generated code" });
   const codeEl = h("code", {});
   pre.append(codeEl);
 
   const setTab = (id) => {
     activeCodeTab = id;
-    for (const b of tabs.children) b.classList.toggle("active", b.dataset.id === id);
+    for (const b of tabs.children) {
+      b.classList.toggle("active", b.dataset.id === id);
+      b.setAttribute("aria-selected", b.dataset.id === id ? "true" : "false");
+    }
     const t = CODE_TABS.find((x) => x.id === id);
     codeEl.textContent = code[id];
     tabHint.textContent = t.hint;
     pre.dataset.lang = t.lang;
   };
   for (const t of CODE_TABS) {
-    tabs.append(h("button", { class: "code-tab", type: "button", "data-id": t.id, role: "tab", onClick: () => setTab(t.id) }, t.label));
+    tabs.append(h("button", { class: "code-tab", type: "button", "data-id": t.id, role: "tab", "aria-selected": "false", onClick: () => setTab(t.id) }, t.label));
   }
 
   const copyBtn = h(

@@ -38,15 +38,17 @@ function applyTheme(theme) {
     /* ignore */
   }
 }
-try {
-  const saved = localStorage.getItem("motion-studio:theme");
-  if (saved) applyTheme(saved);
-} catch {
-  /* ignore */
+{
+  let saved = null;
+  try {
+    saved = localStorage.getItem("motion-studio:theme");
+  } catch {
+    /* ignore */
+  }
+  document.documentElement.dataset.theme = saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 }
 $("#btn-theme").addEventListener("click", () => {
-  const current = document.documentElement.dataset.theme || "dark";
-  applyTheme(current === "dark" ? "light" : "dark");
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 
 /* --- Rendering ---------------------------------------------------------- */
@@ -121,17 +123,35 @@ $("#btn-share").addEventListener("click", () => {
   copy(url, toast, "Share link copied");
 });
 
+/** Minimal accessible dialog: focus moves in on open and back out on close. */
+function dialog(backdrop, openBtn, closeBtn, onOpen) {
+  let returnTo = null;
+  const open = () => {
+    onOpen?.();
+    returnTo = document.activeElement;
+    backdrop.classList.remove("hidden");
+    closeBtn.focus();
+  };
+  const close = () => {
+    if (backdrop.classList.contains("hidden")) return;
+    backdrop.classList.add("hidden");
+    returnTo?.focus?.();
+  };
+  openBtn.addEventListener("click", open);
+  closeBtn.addEventListener("click", close);
+  backdrop.addEventListener("click", (e) => e.target === backdrop && close());
+  return { open, close };
+}
 const exportModal = $("#export-modal");
-$("#btn-export").addEventListener("click", () => {
-  renderCode($("#export-body"), store.get(), { onToast: toast, full: true });
-  exportModal.classList.remove("hidden");
-});
-$("#btn-close-export").addEventListener("click", () => exportModal.classList.add("hidden"));
-exportModal.addEventListener("click", (e) => {
-  if (e.target === exportModal) exportModal.classList.add("hidden");
-});
+const exportDialog = dialog(exportModal, $("#btn-export"), $("#btn-close-export"), () =>
+  renderCode($("#export-body"), store.get(), { onToast: toast, full: true }),
+);
+const shortcutsDialog = dialog($("#shortcuts-modal"), $("#btn-shortcuts"), $("#btn-close-shortcuts"));
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") exportModal.classList.add("hidden");
+  if (e.key === "Escape") {
+    exportDialog.close();
+    shortcutsDialog.close();
+  }
   if ((e.metaKey || e.ctrlKey) && e.key === "z" && !isTyping(e)) {
     e.preventDefault();
     store.undo();
@@ -149,11 +169,23 @@ function isTyping(e) {
 
 /* --- Inspector tabs -------------------------------------------------------- */
 
+function selectTab(name) {
+  for (const t of document.querySelectorAll(".tabs .tab")) {
+    const on = t.dataset.tab === name;
+    t.classList.toggle("active", on);
+    t.setAttribute("aria-selected", on ? "true" : "false");
+    t.tabIndex = on ? 0 : -1;
+  }
+  designPanel.classList.toggle("hidden", name !== "design");
+  codePanel.classList.toggle("hidden", name !== "code");
+}
 for (const tab of document.querySelectorAll(".tabs .tab")) {
-  tab.addEventListener("click", () => {
-    for (const t of document.querySelectorAll(".tabs .tab")) t.classList.toggle("active", t === tab);
-    designPanel.classList.toggle("hidden", tab.dataset.tab !== "design");
-    codePanel.classList.toggle("hidden", tab.dataset.tab !== "code");
+  tab.addEventListener("click", () => selectTab(tab.dataset.tab));
+  tab.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const next = tab.dataset.tab === "design" ? "code" : "design";
+    selectTab(next);
+    document.querySelector(`.tabs .tab[data-tab="${next}"]`).focus();
   });
 }
 
@@ -161,12 +193,13 @@ for (const tab of document.querySelectorAll(".tabs .tab")) {
 
 function showView(view) {
   document.body.dataset.view = view;
-  for (const b of document.querySelectorAll(".mobile-nav button")) b.classList.toggle("active", b.dataset.view === view);
-  if (view === "design" || view === "code") {
-    for (const t of document.querySelectorAll(".tabs .tab")) t.classList.toggle("active", t.dataset.tab === view);
-    designPanel.classList.toggle("hidden", view !== "design");
-    codePanel.classList.toggle("hidden", view !== "code");
+  for (const b of document.querySelectorAll(".mobile-nav button")) {
+    const on = b.dataset.view === view;
+    b.classList.toggle("active", on);
+    if (on) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
   }
+  if (view === "design" || view === "code") selectTab(view);
 }
 for (const b of document.querySelectorAll(".mobile-nav button")) {
   b.addEventListener("click", () => showView(b.dataset.view));
