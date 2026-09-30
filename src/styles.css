@@ -378,13 +378,18 @@ p {
   display: block;
   scroll-behavior: smooth;
 }
+/* Fills the stage so overlays (modal, drawer, toast) position against the
+   whole preview, not the component's own box. */
 .stage-inner {
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
   padding: 24px;
   transform-style: preserve-3d;
 }
 .stage.scrolly .stage-inner {
+  height: auto;
   min-height: 60%;
 }
 .scroll-filler {
