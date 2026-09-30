@@ -1,0 +1,7 @@
+{
+  // Optional: deploy as a Cloudflare Worker with static assets via `npx wrangler deploy`.
+  // Cloudflare Pages works without this file (build: `npm run build`, output: `dist`).
+  "name": "motion-studio",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "./dist" }
+}

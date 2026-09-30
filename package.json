@@ -1,0 +1,18 @@
+{
+  "name": "motion-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Visually design motion.dev animations and export ready-to-use code.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "motion": "^13.4.6"
+  },
+  "devDependencies": {
+    "vite": "^8.3.1"
+  }
+}
