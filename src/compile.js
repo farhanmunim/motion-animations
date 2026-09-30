@@ -3,40 +3,98 @@
  * preview and the code exporter use these so what you see is what you export.
  */
 import { motionKey, toMotionValue } from "./props.js";
+import { getComponent, isComponent } from "./components.js";
+
+/** Tracks that belong to a part (undefined part = the element itself). */
+function tracksFor(state, part) {
+  return state.tracks.filter((t) => (t.part || null) === (part || null));
+}
 
 /** `{ opacity: [0, 1], y: [40, 0], filter: ["blur(16px)", "blur(0px)"] }` */
-export function buildKeyframes(state) {
+export function buildKeyframes(state, part) {
   const kf = {};
-  for (const t of state.tracks) {
+  for (const t of tracksFor(state, part)) {
     if (!t.values || t.values.length < 2) continue;
     kf[motionKey(t.prop)] = t.values.map((v) => toMotionValue(t.prop, v));
   }
   return kf;
 }
 
-/** Values at the first keyframe, used to reset / revert. */
-export function buildFromValues(state) {
+/** Values at the first keyframe, used to reset / revert / "closed". */
+export function buildFromValues(state, part) {
   const out = {};
-  for (const t of state.tracks) {
+  for (const t of tracksFor(state, part)) {
     if (!t.values?.length) continue;
     out[motionKey(t.prop)] = toMotionValue(t.prop, t.values[0]);
   }
   return out;
 }
 
-/** Values at the last keyframe. */
-export function buildToValues(state) {
+/** Values at the last keyframe ("open"). Multi-step tracks keep the array. */
+export function buildOpenValues(state, part) {
   const out = {};
-  for (const t of state.tracks) {
+  for (const t of tracksFor(state, part)) {
     if (!t.values?.length) continue;
-    out[motionKey(t.prop)] = toMotionValue(t.prop, t.values[t.values.length - 1]);
+    const vals = t.values.map((v) => toMotionValue(t.prop, v));
+    out[motionKey(t.prop)] = vals.length > 2 ? vals : vals[vals.length - 1];
   }
   return out;
 }
 
-/** True when every track is a simple from → to pair. */
-export function isSimpleFromTo(state) {
-  return state.tracks.every((t) => t.values.length === 2);
+/** True when the animation targets several elements (list items, words, letters...). */
+export function isMulti(state) {
+  const el = state.element;
+  if (el.type === "list" || el.type === "grid") return true;
+  if (el.type === "text" && el.split && el.split !== "none") return true;
+  if (el.type === "custom" && el.animateChildren) return true;
+  return false;
+}
+
+/**
+ * The animation plan: one entry per animated thing.
+ *  - a plain element: a single entry
+ *  - a component: one entry per part that has tracks
+ */
+export function buildPlan(state) {
+  if (isComponent(state.element.type)) {
+    const comp = getComponent(state.element.type);
+    return comp.parts
+      .filter((p) => tracksFor(state, p.key).length)
+      .map((p) => ({
+        part: p.key,
+        label: p.label,
+        selector: p.selector,
+        multi: !!p.multi,
+        keyframes: buildKeyframes(state, p.key),
+        from: buildFromValues(state, p.key),
+        open: buildOpenValues(state, p.key),
+      }));
+  }
+  return [
+    {
+      part: null,
+      label: null,
+      selector: null,
+      multi: isMulti(state),
+      keyframes: buildKeyframes(state),
+      from: buildFromValues(state),
+      open: buildOpenValues(state),
+    },
+  ];
+}
+
+/** True when a stagger setting would have any effect. */
+export function staggerApplies(state) {
+  return buildPlan(state).some((e) => e.multi);
+}
+
+/** Components cannot be scroll-linked; everything else passes through. */
+export function effectiveTrigger(state) {
+  if (isComponent(state.element.type)) {
+    const allowed = getComponent(state.element.type).triggers;
+    return allowed.includes(state.trigger) ? state.trigger : allowed[0];
+  }
+  return state.trigger;
 }
 
 /** Marker for raw JS code inside serialized objects (e.g. stagger(...)). */
@@ -49,12 +107,13 @@ export class Raw {
 /**
  * Build the transition options object. `mode` is "js" (real values for the
  * preview) or "code" (values ready to be serialized into source code).
+ * `multi` says whether the stagger applies to this target.
  */
-export function buildTransition(state, { mode = "js", staggerFn = null } = {}) {
+export function buildTransition(state, { mode = "js", staggerFn = null, multi = isMulti(state) } = {}) {
   const t = state.transition;
   const opts = {};
 
-  if (state.trigger === "scroll") {
+  if (effectiveTrigger(state) === "scroll") {
     // Scroll-linked animations are scrubbed, so only easing matters.
     opts.ease = t.ease === "custom" ? t.bezier : t.ease;
     return opts;
@@ -76,17 +135,14 @@ export function buildTransition(state, { mode = "js", staggerFn = null } = {}) {
   }
 
   const delay = num(t.delay);
-  if (state.stagger.enabled && isMulti(state)) {
+  if (state.stagger.enabled && multi) {
     if (mode === "js" && staggerFn) {
       opts.delay = staggerFn(num(state.stagger.each), {
         startDelay: delay,
         from: state.stagger.from,
       });
     } else {
-      const extra = [];
-      if (delay) extra.push(`startDelay: ${delay}`);
-      if (state.stagger.from !== "first") extra.push(`from: "${state.stagger.from}"`);
-      opts.delay = new Raw(`stagger(${num(state.stagger.each)}${extra.length ? `, { ${extra.join(", ")} }` : ""})`);
+      opts.delay = new Raw(staggerCode(state));
     }
   } else if (delay) {
     opts.delay = delay;
@@ -101,13 +157,13 @@ export function buildTransition(state, { mode = "js", staggerFn = null } = {}) {
   return opts;
 }
 
-/** True when the animation targets several elements (list items, words, letters...). */
-export function isMulti(state) {
-  const el = state.element;
-  if (el.type === "list" || el.type === "grid") return true;
-  if (el.type === "text" && el.split && el.split !== "none") return true;
-  if (el.type === "custom" && el.animateChildren) return true;
-  return false;
+/** `stagger(0.08, { startDelay: 0.2, from: "center" })` as source code. */
+export function staggerCode(state) {
+  const delay = num(state.transition.delay);
+  const extra = [];
+  if (delay) extra.push(`startDelay: ${delay}`);
+  if (state.stagger.from !== "first") extra.push(`from: "${state.stagger.from}"`);
+  return `stagger(${num(state.stagger.each)}${extra.length ? `, { ${extra.join(", ")} }` : ""})`;
 }
 
 /** Selector used in exported code. */

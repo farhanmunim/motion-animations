@@ -5,9 +5,9 @@
 import { animate } from "motion";
 import { PROPS, PROP_GROUPS, EASINGS, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel } from "./props.js";
 import { PRESETS } from "./presets.js";
-import { isMulti } from "./compile.js";
+import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger } from "./compile.js";
 import { generateAll } from "./codegen.js";
-import { buildKeyframes } from "./compile.js";
+import { COMPONENTS, isComponent, partLabel } from "./components.js";
 import { merge, clone, DEFAULT_STATE } from "./state.js";
 
 /* --- Tiny DOM helper ------------------------------------------------------ */
@@ -59,11 +59,15 @@ export function numberField({ label, value, min, max, step = 1, unit = "", hint,
 }
 
 export function selectField({ label, value, options, hint, onChange }) {
-  const sel = h(
-    "select",
-    { onChange: (e) => onChange(e.target.value) },
-    options.map((o) => h("option", { value: o.value, selected: o.value === value }, o.label)),
-  );
+  const sel = h("select", { onChange: (e) => onChange(e.target.value) });
+  const groups = [...new Set(options.map((o) => o.group).filter(Boolean))];
+  const opt = (o) => h("option", { value: o.value, selected: o.value === value }, o.label);
+  if (groups.length) {
+    for (const g of groups) sel.append(h("optgroup", { label: g }, options.filter((o) => o.group === g).map(opt)));
+    for (const o of options.filter((o) => !o.group)) sel.append(opt(o));
+  } else {
+    for (const o of options) sel.append(opt(o));
+  }
   return h("label", { class: "field", title: hint || "" }, h("span", { class: "field-label" }, label), h("span", { class: "field-controls" }, sel));
 }
 
@@ -139,11 +143,13 @@ const CATEGORIES = [
   { id: "interaction", label: "Hover & press", tag: "interaction" },
   { id: "scroll", label: "Scroll", tag: "scroll" },
   { id: "loop", label: "Loops & attention", tag: "loop", extra: "attention" },
+  { id: "component", label: "UI components", tag: "component" },
 ];
 
 /** Thumbnail values are scaled down so the mini preview fits the card. */
 function thumbKeyframes(preset) {
-  const kf = buildKeyframes(merge(clone(DEFAULT_STATE), preset.state));
+  const st = merge(clone(DEFAULT_STATE), preset.state);
+  const kf = isComponent(st.element.type) ? buildPlan(st)[0]?.keyframes || {} : buildKeyframes(st);
   const out = {};
   for (const [k, vals] of Object.entries(kf)) {
     if (k === "x" || k === "y") out[k] = vals.map((v) => v * 0.25);
@@ -167,6 +173,13 @@ function thumbTransition(preset) {
 
 function thumbMarkup(preset) {
   const el = merge(clone(DEFAULT_STATE), preset.state).element;
+  if (isComponent(el.type)) {
+    const kind = COMPONENTS[el.type].thumb;
+    if (kind === "list") return `<span class="th-list">${"<i></i>".repeat(3)}</span>`;
+    if (kind === "grid") return `<span class="th-grid">${"<i></i>".repeat(9)}</span>`;
+    if (kind === "button") return `<span class="th-button"><i>${COMPONENTS[el.type].emoji}</i></span>`;
+    return `<span class="th-card"><i></i></span>`;
+  }
   if (el.type === "text") {
     const word = (el.text || "Aa").split(" ")[0].slice(0, 6);
     if (el.split === "chars") return `<span class="th-text">${[...word].map((c) => `<i>${c}</i>`).join("")}</span>`;
@@ -266,9 +279,26 @@ function renderElementSection(state, set) {
       label: "What to animate",
       value: el.type,
       options: ELEMENT_TYPES,
-      onChange: (v) => set({ element: { type: v } }, true),
+      onChange: (v) => {
+        // Tracks are tied to parts of a specific component, so they do not carry over.
+        const switchingKind = isComponent(v) || isComponent(el.type);
+        const patch = { element: { type: v } };
+        if (switchingKind) patch.tracks = [];
+        if (isComponent(v) && !COMPONENTS[v].triggers.includes(state.trigger)) patch.trigger = COMPONENTS[v].triggers[0];
+        set(patch, true);
+      },
     }),
   );
+
+  if (isComponent(el.type)) {
+    kids.push(
+      h("p", { class: "hint" }, "A working component with real markup. Each part (bars, panel, items...) can be animated on its own in the Animate section below."),
+      colorField({ label: "Accent color", value: el.color, onInput: (v) => set({ element: { color: v } }) }),
+      colorField({ label: "Text on accent", value: el.textColor, onInput: (v) => set({ element: { textColor: v } }) }),
+      numberField({ label: "Corner radius", value: el.radius, min: 0, max: 40, unit: "px", onInput: (v) => set({ element: { radius: v } }) }),
+    );
+    return section("Component", "Pick a UI component. Copy the code and it works as-is on your page.", ...kids);
+  }
 
   if (el.type === "text" || el.type === "button" || el.type === "card") {
     kids.push(textField({ label: "Text", value: el.text, onInput: (v) => set({ element: { text: v } }) }));
@@ -322,20 +352,23 @@ function renderElementSection(state, set) {
 
 function renderTriggerSection(state, set) {
   const kids = [];
+  const comp = isComponent(state.element.type) ? COMPONENTS[state.element.type] : null;
+  const options = comp ? TRIGGERS.filter((t) => comp.triggers.includes(t.value)) : TRIGGERS;
+  const trigger = effectiveTrigger(state);
   kids.push(
     segmented({
-      value: state.trigger,
-      options: TRIGGERS,
+      value: trigger,
+      options,
       onChange: (v) => set({ trigger: v }, true),
     }),
   );
-  const current = TRIGGERS.find((t) => t.value === state.trigger);
+  const current = TRIGGERS.find((t) => t.value === trigger);
   kids.push(h("p", { class: "hint" }, current?.hint || ""));
 
-  if (state.trigger === "hover") {
+  if (trigger === "hover") {
     kids.push(toggleField({ label: "Revert when the pointer leaves", value: state.hover.revert, onChange: (v) => set({ hover: { revert: v } }) }));
   }
-  if (state.trigger === "inView") {
+  if (trigger === "inView") {
     kids.push(
       numberField({
         label: "Visible amount",
@@ -349,7 +382,7 @@ function renderTriggerSection(state, set) {
       toggleField({ label: "Play only once", value: state.inView.once, onChange: (v) => set({ inView: { once: v } }) }),
     );
   }
-  if (state.trigger === "scroll") {
+  if (trigger === "scroll") {
     const edges = [
       { value: "start end", label: "Element top meets viewport bottom" },
       { value: "start center", label: "Element top meets viewport center" },
@@ -369,32 +402,43 @@ function renderTriggerSection(state, set) {
 
 function renderTracksSection(state, set, store) {
   const kids = [];
-  const used = new Set(state.tracks.map((t) => t.prop));
+  const comp = isComponent(state.element.type) ? COMPONENTS[state.element.type] : null;
+  const used = new Set(state.tracks.map((t) => `${t.part || ""}|${t.prop}`));
 
   state.tracks.forEach((track, index) => kids.push(trackCard(track, index, state, set, store)));
 
   if (!state.tracks.length) kids.push(h("p", { class: "hint pad" }, "No properties yet. Add one below to get moving."));
 
   const addSel = h("select", { class: "add-prop" }, h("option", { value: "" }, "+ Add a property…"));
-  for (const group of PROP_GROUPS) {
-    const og = h("optgroup", { label: group });
-    for (const [key, def] of Object.entries(PROPS)) {
-      if (def.group !== group || used.has(key)) continue;
-      og.append(h("option", { value: key }, def.label));
+  const addOptions = (part) => {
+    for (const group of PROP_GROUPS) {
+      const og = h("optgroup", { label: part ? `${part.label} · ${group}` : group });
+      for (const [key, def] of Object.entries(PROPS)) {
+        if (def.group !== group || used.has(`${part?.key || ""}|${key}`)) continue;
+        og.append(h("option", { value: `${part?.key || ""}|${key}` }, def.label));
+      }
+      if (og.children.length) addSel.append(og);
     }
-    if (og.children.length) addSel.append(og);
-  }
+  };
+  if (comp) comp.parts.forEach(addOptions);
+  else addOptions(null);
+
   addSel.addEventListener("change", () => {
-    const key = addSel.value;
-    if (!key) return;
+    if (!addSel.value) return;
+    const [part, key] = addSel.value.split("|");
     const def = PROPS[key];
     const from = def.kind === "color" ? (key === "backgroundColor" ? state.element.color : def.def) : def.def;
     const to = def.kind === "color" ? "#ec4899" : defaultTo(key, state);
-    store.patch({ tracks: [...state.tracks, { prop: key, values: [from, to] }] }, { rerender: true });
+    const track = { prop: key, values: [from, to] };
+    if (part) track.part = part;
+    store.patch({ tracks: [...state.tracks, track] }, { rerender: true });
   });
   kids.push(addSel);
 
-  return section("Animate", "Each property goes from its first value to its last. Add keyframes for in-between steps.", ...kids);
+  const subtitle = comp
+    ? "First value = closed, last value = open. Pick a part of the component, then a property."
+    : "Each property goes from its first value to its last. Add keyframes for in-between steps.";
+  return section("Animate", subtitle, ...kids);
 }
 
 /** A sensible "to" value when a property is added. */
@@ -445,7 +489,7 @@ function trackCard(track, index, state, set, store) {
   const head = h(
     "div",
     { class: "track-head" },
-    h("strong", {}, propLabel(track.prop)),
+    h("strong", {}, track.part ? [h("span", { class: "part-label" }, partLabel(state.element.type, track.part), " · "), propLabel(track.prop)] : propLabel(track.prop)),
     h("span", { class: "spacer" }),
     h(
       "button",
@@ -529,7 +573,7 @@ function renderTimingSection(state, set) {
   const t = state.transition;
   const kids = [];
 
-  if (state.trigger === "scroll") {
+  if (effectiveTrigger(state) === "scroll") {
     kids.push(h("p", { class: "hint" }, "Scroll-linked animations follow your scroll position, so duration and delay do not apply."));
     kids.push(easingFields(state, set));
     return section("Timing", null, ...kids);
@@ -577,7 +621,7 @@ function renderTimingSection(state, set) {
   kids.push(numberField({ label: "Delay", value: t.delay, min: 0, max: 5, step: 0.05, unit: "s", onInput: (v) => set({ transition: { delay: v } }) }));
 
   // Stagger (only meaningful when several elements are animated)
-  if (isMulti(state)) {
+  if (staggerApplies(state)) {
     const stg = state.stagger;
     kids.push(
       h("div", { class: "subhead" }, "Stagger"),

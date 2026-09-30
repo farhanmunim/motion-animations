@@ -113,6 +113,7 @@ export const EASINGS = [
 
 export const TRIGGERS = [
   { value: "load", label: "On load", hint: "Plays as soon as the element appears on the page." },
+  { value: "toggle", label: "On click", hint: "Click to play, click again to reverse. Components open and close." },
   { value: "hover", label: "On hover", hint: "Plays when the pointer enters. Reverts when it leaves." },
   { value: "press", label: "On press", hint: "Plays while the element is pressed. Reverts on release." },
   { value: "inView", label: "When scrolled into view", hint: "Plays once the element enters the viewport." },
@@ -120,14 +121,23 @@ export const TRIGGERS = [
 ];
 
 export const ELEMENT_TYPES = [
-  { value: "box", label: "Box" },
-  { value: "circle", label: "Circle" },
-  { value: "text", label: "Heading" },
-  { value: "button", label: "Button" },
-  { value: "card", label: "Card" },
-  { value: "list", label: "List (many items)" },
-  { value: "grid", label: "Grid of tiles" },
-  { value: "custom", label: "Custom HTML" },
+  { value: "box", label: "Box", group: "Elements" },
+  { value: "circle", label: "Circle", group: "Elements" },
+  { value: "text", label: "Heading", group: "Elements" },
+  { value: "button", label: "Button", group: "Elements" },
+  { value: "card", label: "Card", group: "Elements" },
+  { value: "list", label: "List (many items)", group: "Elements" },
+  { value: "grid", label: "Grid of tiles", group: "Elements" },
+  { value: "custom", label: "Custom HTML", group: "Elements" },
+  { value: "hamburger", label: "Hamburger menu button", group: "Components" },
+  { value: "dropdown", label: "Dropdown menu", group: "Components" },
+  { value: "modal", label: "Modal dialog", group: "Components" },
+  { value: "drawer", label: "Side drawer", group: "Components" },
+  { value: "accordion", label: "Accordion", group: "Components" },
+  { value: "switch", label: "Toggle switch", group: "Components" },
+  { value: "tooltip", label: "Tooltip", group: "Components" },
+  { value: "toast", label: "Toast notification", group: "Components" },
+  { value: "fab", label: "Floating action menu", group: "Components" },
 ];
 
 export const TEXT_SPLITS = [

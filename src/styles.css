@@ -492,9 +492,31 @@ p {
 .demo-custom.motion-target {
   display: block;
 }
-.motion-item,
-.motion-target {
+/* 3D rotations need preserve-3d, but it also turns the element into a
+   containing block, which would trap component overlays. So: elements only. */
+.demo-shape,
+.demo-text,
+.demo-button,
+.demo-card,
+.demo-custom,
+.motion-item {
   transform-style: preserve-3d;
+}
+
+/* Components use position: fixed for overlays; keep them inside the stage. */
+.stage .modal-backdrop,
+.stage .modal-dialog,
+.stage .drawer-backdrop,
+.stage .drawer-panel,
+.stage .toast-card {
+  position: absolute;
+}
+.stage-inner .motion-target {
+  color: var(--text);
+}
+.part-label {
+  color: var(--text-3);
+  font-weight: 500;
 }
 
 /* ---------- Inspector ---------- */

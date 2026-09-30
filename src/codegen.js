@@ -7,8 +7,9 @@
  *   - a complete standalone HTML file for trying it out
  *   - the CSS that makes the exported element look like the preview
  */
-import { Raw, buildKeyframes, buildFromValues, buildTransition, isMulti, scrollOffset, targetSelector } from "./compile.js";
+import { Raw, buildKeyframes, buildFromValues, buildPlan, buildTransition, effectiveTrigger, isMulti, scrollOffset, staggerCode, targetSelector } from "./compile.js";
 import { elementMarkup } from "./preview.js";
+import { getComponent, isComponent, componentCss } from "./components.js";
 
 export const MOTION_VERSION = "13";
 export const CDN_URL = `https://cdn.jsdelivr.net/npm/motion@${MOTION_VERSION}/+esm`;
@@ -71,9 +72,104 @@ function splitText(element, mode = "words") {
   }
 }`;
 
+/* --- Components ------------------------------------------------------------ */
+
+/**
+ * Components animate several parts at once and switch between "closed" and
+ * "open". The generated code exposes a setOpen(bool) function and wires the
+ * chosen trigger to it.
+ */
+function generateComponentVanilla(state, importFrom) {
+  const comp = getComponent(state.element.type);
+  const trigger = effectiveTrigger(state);
+  const plan = buildPlan(state);
+  const transition = buildTransition(state, { mode: "code", multi: false });
+  const imports = new Set(["animate"]);
+
+  const open = {};
+  const closed = {};
+  const staggered = [];
+  for (const e of plan) {
+    const key = e.selector ?? ":scope";
+    open[key] = e.open;
+    closed[key] = e.from;
+    if (e.multi && state.stagger.enabled) staggered.push(key);
+  }
+  if (staggered.length) imports.add("stagger");
+
+  const body = [];
+  body.push(`const root = document.querySelector(".motion-target");`, "");
+  body.push(`const transition = ${js(transition)};`, "");
+  body.push(
+    "// What each part looks like when open and when closed.",
+    "// Selectors are relative to the root (\":scope\" is the root itself).",
+    `const open = ${js(open)};`,
+    "",
+    `const closed = ${js(closed)};`,
+    "",
+  );
+  if (staggered.length) {
+    body.push(
+      "// Parts that animate one item after another.",
+      `const staggered = ${js(Object.fromEntries(staggered.map((k) => [k, new Raw(staggerCode(state))])))};`,
+      "",
+    );
+  }
+  body.push(
+    "function setOpen(isOpen) {",
+    `  root.classList.toggle("is-open", isOpen);`,
+    "  // Keep screen readers informed.",
+    `  for (const el of [root, ...root.querySelectorAll("[aria-expanded], [aria-checked]")]) {`,
+    `    for (const attr of ["aria-expanded", "aria-checked"]) if (el.hasAttribute(attr)) el.setAttribute(attr, String(isOpen));`,
+    "  }",
+    "  const values = isOpen ? open : closed;",
+    "  for (const selector in values) {",
+    staggered.length
+      ? "    animate(root.querySelectorAll(selector), values[selector], { ...transition, delay: staggered[selector] ?? transition.delay });"
+      : "    animate(root.querySelectorAll(selector), values[selector], transition);",
+    "  }",
+    "}",
+    "",
+    "// Start closed, without animating.",
+    "for (const selector in closed) animate(root.querySelectorAll(selector), closed[selector], { duration: 0 });",
+    "",
+  );
+
+  switch (trigger) {
+    case "toggle": {
+      const clickers = comp.clicks.length ? comp.clicks.join(", ") : null;
+      body.push("let isOpen = false;");
+      if (clickers) {
+        body.push(`for (const el of root.querySelectorAll(${js(clickers)})) {`, "  el.addEventListener(\"click\", () => setOpen((isOpen = !isOpen)));", "}");
+      } else {
+        body.push(`root.addEventListener("click", () => setOpen((isOpen = !isOpen)));`);
+      }
+      break;
+    }
+    case "hover":
+      imports.add("hover");
+      body.push("// Open on hover, close when the pointer leaves.", "hover(root, () => {", "  setOpen(true);", state.hover.revert ? "  return () => setOpen(false);" : "", "});");
+      break;
+    case "press":
+      imports.add("press");
+      body.push("// Open while pressed, close on release.", "press(root, () => {", "  setOpen(true);", "  return () => setOpen(false);", "});");
+      break;
+    case "inView":
+      imports.add("inView");
+      body.push("// Open when it scrolls into view.", "inView(root, () => {", "  setOpen(true);", state.inView.once ? "" : "  return () => setOpen(false);", `}, ${js({ amount: Number(state.inView.amount) })});`);
+      break;
+    case "load":
+    default:
+      body.push("// Open as soon as this script runs.", "setOpen(true);");
+  }
+
+  return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body.filter((l) => l !== "")].join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
 /* --- Vanilla JS --------------------------------------------------------- */
 
 export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
+  if (isComponent(state.element.type)) return generateComponentVanilla(state, importFrom);
   const multi = isMulti(state);
   const keyframes = buildKeyframes(state);
   const from = buildFromValues(state);
@@ -96,6 +192,17 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
   const target = multi ? `element.querySelectorAll(${js(".motion-item")})` : "element";
 
   switch (state.trigger) {
+    case "toggle": {
+      body.push(
+        "// Click to play, click again to reverse.",
+        "let isOpen = false;",
+        `document.querySelector(${js(wrapper)}).addEventListener("click", () => {`,
+        "  isOpen = !isOpen;",
+        `  animate(${js(selector)}, isOpen ? keyframes : ${js(from, 1)}, transition);`,
+        "});",
+      );
+      break;
+    }
     case "hover": {
       imports.add("hover");
       body.push(
@@ -163,6 +270,11 @@ export function generateCss(state) {
   const el = state.element;
   const has3d = state.tracks.some((t) => t.prop === "rotateX" || t.prop === "rotateY");
   const css = [];
+  if (isComponent(el.type)) {
+    css.push(componentCss(el.type, el));
+    if (has3d) css.push(`.motion-scene {\n  perspective: 900px;\n}`);
+    return css.join("\n\n");
+  }
   css.push(`/* A parent with perspective makes 3D rotations look right. */
 .motion-scene {
   perspective: 900px;

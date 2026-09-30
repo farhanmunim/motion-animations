@@ -3,7 +3,8 @@
  * real motion.dev functions so the preview behaves exactly like the export.
  */
 import { animate, hover, press, inView, scroll, stagger } from "motion";
-import { buildKeyframes, buildFromValues, buildTransition, scrollOffset, isMulti } from "./compile.js";
+import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger } from "./compile.js";
+import { getComponent, isComponent, componentCss } from "./components.js";
 
 let cleanup = [];
 let activeAnimations = [];
@@ -56,6 +57,7 @@ export function splitMarkup(text, mode) {
 /** HTML for the element being animated. Shared with the exporter. */
 export function elementMarkup(el, { forExport = false } = {}) {
   const text = escapeHtml(el.text || "Hello");
+  if (isComponent(el.type)) return getComponent(el.type).markup;
   switch (el.type) {
     case "circle":
       return `<div class="motion-target demo-shape demo-circle"></div>`;
@@ -97,11 +99,6 @@ export function elementMarkup(el, { forExport = false } = {}) {
   }
 }
 
-/** CSS custom properties that drive the demo element's look. */
-export function elementCss(el) {
-  return `--demo-color:${el.color};--demo-text:${el.textColor};--demo-radius:${el.radius}px;--demo-size:${el.size}px;`;
-}
-
 /** Add class="motion-item" to every top-level element of an HTML string. */
 function addItemClass(html) {
   const tpl = document.createElement("template");
@@ -110,11 +107,21 @@ function addItemClass(html) {
   return tpl.innerHTML;
 }
 
+/** CSS custom properties that drive the demo element's look. */
+export function elementCss(el) {
+  return `--demo-color:${el.color};--demo-text:${el.textColor};--demo-radius:${el.radius}px;--demo-size:${el.size}px;`;
+}
+
 function clamp(n, a, b) {
   return Math.min(b, Math.max(a, Number(n) || a));
 }
 
-function targets(stage, state) {
+/** Resolve the DOM elements for one plan entry. */
+function resolveEntry(stage, root, state, entry) {
+  if (isComponent(state.element.type)) {
+    if (entry.selector === null) return [root];
+    return Array.from(root.querySelectorAll(entry.selector));
+  }
   return isMulti(state)
     ? Array.from(stage.querySelectorAll(".motion-item"))
     : Array.from(stage.querySelectorAll(".motion-target"));
@@ -127,43 +134,80 @@ function targets(stage, state) {
 export function renderPreview(stage, state, setStatus) {
   stopAll();
 
-  const scrolly = state.trigger === "inView" || state.trigger === "scroll";
+  const el = state.element;
+  const component = isComponent(el.type) ? getComponent(el.type) : null;
+  const trigger = effectiveTrigger(state);
+  const scrolly = trigger === "inView" || trigger === "scroll";
   stage.classList.toggle("scrolly", scrolly);
 
-  const inner = `<div class="stage-inner" style="${elementCss(state.element)}">${elementMarkup(state.element)}</div>`;
+  const style = component ? `<style>${componentCss(el.type, el)}</style>` : "";
+  const inner = `<div class="stage-inner" style="${elementCss(el)}">${style}${elementMarkup(el)}</div>`;
   stage.innerHTML = scrolly
     ? `<div class="scroll-filler top"><span>Scroll down ↓</span></div>${inner}<div class="scroll-filler bottom"><span>Keep scrolling</span></div>`
     : inner;
   stage.scrollTop = 0;
 
-  const els = targets(stage, state);
-  if (!els.length) return () => {};
+  const root = stage.querySelector(".motion-target");
+  if (!root) return () => {};
 
-  const keyframes = buildKeyframes(state);
-  const from = buildFromValues(state);
-  const hasTracks = Object.keys(keyframes).length > 0;
-  const options = () => buildTransition(state, { mode: "js", staggerFn: stagger });
+  const plan = buildPlan(state)
+    .map((entry) => ({ ...entry, els: resolveEntry(stage, root, state, entry) }))
+    .filter((entry) => entry.els.length && Object.keys(entry.keyframes).length);
+  const hasTracks = plan.length > 0;
+  const options = (multi) => buildTransition(state, { mode: "js", staggerFn: stagger, multi });
 
-  const play = () => {
-    if (!hasTracks) return;
+  let isOpen = false;
+  const setOpen = (open) => {
+    isOpen = open;
+    root.classList.toggle("is-open", open);
+    for (const el of [root, ...root.querySelectorAll("[aria-expanded], [aria-checked]")]) {
+      for (const attr of ["aria-expanded", "aria-checked"]) if (el.hasAttribute(attr)) el.setAttribute(attr, String(open));
+    }
     for (const a of activeAnimations) a.stop?.();
-    activeAnimations = [animate(els, keyframes, options())];
+    activeAnimations = plan.map((e) => animate(e.els, open ? e.keyframes : e.from, options(e.multi)));
+  };
+  const play = () => setOpen(true);
+  const revert = () => setOpen(false);
+  const setInitial = () => {
+    for (const e of plan) {
+      if (!Object.keys(e.from).length) continue;
+      const a = animate(e.els, e.from, { duration: 0 });
+      a.complete?.();
+    }
   };
 
-  const revert = () => {
-    for (const a of activeAnimations) a.stop?.();
-    activeAnimations = [animate(els, from, revertOptions(state))];
-  };
+  // The whole component (or the wrapper for lists / grids) for viewport checks.
+  const viewTarget = isMulti(state) ? stage.querySelector(".stage-inner").lastElementChild : root;
 
-  switch (state.trigger) {
+  switch (trigger) {
+    case "toggle": {
+      setStatus(component ? "Click the component to open and close it" : "Click the element to play, click again to reverse");
+      setInitial();
+      const clickers = component?.clicks?.length ? component.clicks.flatMap((s) => Array.from(root.querySelectorAll(s))) : [viewTarget];
+      for (const c of clickers) {
+        const handler = (e) => {
+          e.preventDefault();
+          setOpen(!isOpen);
+        };
+        c.addEventListener("click", handler);
+        cleanup.push(() => c.removeEventListener("click", handler));
+      }
+      return () => setOpen(!isOpen);
+    }
     case "hover": {
       setStatus("Hover the element to preview");
-      setInitial(els, from);
-      for (const el of els) {
+      setInitial();
+      const targets = component ? [root] : plan.flatMap((e) => e.els);
+      for (const t of targets) {
         cleanup.push(
-          hover(el, () => {
-            play();
-            return () => state.hover.revert && revert();
+          hover(t, () => {
+            if (component) play();
+            else activeAnimations.push(...plan.map((e) => animate(t, e.keyframes, options(false))));
+            return () => {
+              if (!state.hover.revert) return;
+              if (component) revert();
+              else activeAnimations.push(...plan.map((e) => animate(t, e.from, options(false))));
+            };
           }),
         );
       }
@@ -171,12 +215,17 @@ export function renderPreview(stage, state, setStatus) {
     }
     case "press": {
       setStatus("Press and hold the element to preview");
-      setInitial(els, from);
-      for (const el of els) {
+      setInitial();
+      const targets = component ? [root] : plan.flatMap((e) => e.els);
+      for (const t of targets) {
         cleanup.push(
-          press(el, () => {
-            play();
-            return () => revert();
+          press(t, () => {
+            if (component) play();
+            else activeAnimations.push(...plan.map((e) => animate(t, e.keyframes, options(false))));
+            return () => {
+              if (component) revert();
+              else activeAnimations.push(...plan.map((e) => animate(t, e.from, options(false))));
+            };
           }),
         );
       }
@@ -184,11 +233,10 @@ export function renderPreview(stage, state, setStatus) {
     }
     case "inView": {
       setStatus("Scroll the preview to bring the element into view");
-      setInitial(els, from);
-      const target = isMulti(state) ? stage.querySelector(".stage-inner").firstElementChild : els[0];
+      setInitial();
       cleanup.push(
         inView(
-          target,
+          viewTarget,
           () => {
             play();
             if (state.inView.once) return;
@@ -205,34 +253,18 @@ export function renderPreview(stage, state, setStatus) {
     case "scroll": {
       setStatus("Scroll the preview: the animation follows your scroll position");
       if (!hasTracks) return () => {};
-      const target = isMulti(state) ? stage.querySelector(".stage-inner").firstElementChild : els[0];
-      const anim = animate(els, keyframes, options());
-      activeAnimations = [anim];
-      cleanup.push(scroll(anim, { container: stage, target, offset: scrollOffset(state) }));
+      for (const e of plan) {
+        const anim = animate(e.els, e.keyframes, options(e.multi));
+        activeAnimations.push(anim);
+        cleanup.push(scroll(anim, { container: stage, target: viewTarget, offset: scrollOffset(state) }));
+      }
       return () => stage.scrollTo({ top: 0, behavior: "smooth" });
     }
     case "load":
     default: {
       setStatus(hasTracks ? "Playing on load" : "Add a property to animate");
-      play();
+      if (hasTracks) play();
       return play;
     }
   }
-}
-
-function setInitial(els, from) {
-  if (!Object.keys(from).length) return;
-  const a = animate(els, from, { duration: 0 });
-  a.complete?.();
-}
-
-/** Revert animations (hover leave / press release) use a quick, calm tween. */
-function revertOptions(state) {
-  const t = state.transition;
-  if (t.type === "spring") {
-    return t.springMode === "visual"
-      ? { type: "spring", visualDuration: Number(t.visualDuration), bounce: Number(t.bounce) }
-      : { type: "spring", stiffness: Number(t.stiffness), damping: Number(t.damping), mass: Number(t.mass) || 1 };
-  }
-  return { duration: Number(t.duration) || 0.3, ease: t.ease === "custom" ? t.bezier : t.ease };
 }
