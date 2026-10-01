@@ -11,6 +11,7 @@ A lightweight web app for visually designing [motion.dev](https://motion.dev) an
 - **Live preview** that uses the real motion.dev library, so what you see is exactly what you export.
 - **Export** as a drop-in `<script type="module">` (loads motion from a CDN, no install), a JS module for bundler projects, a complete HTML page, and the matching CSS.
 - **Share links.** The whole design is encoded in the URL. Work is also saved locally so a refresh never loses it.
+- **Timeline mode (v2).** Switch to *Timeline* in the top bar to choreograph several elements on one timeline: a hero section, a card grid, a nav bar, or your own HTML. Every element and property gets a row; actions are blocks you drag to change when they start and resize to change how long they take. Scrub the playhead, click an element in the preview to select it, and export the whole sequence as one motion.dev `animate()` call. Triggers: on load, on click (plays backwards on the second click), when scrolled into view, or scrubbed by scroll.
 
 ## Run it locally
 
@@ -75,6 +76,8 @@ src/preview.js     Live preview (uses motion.dev directly)
 src/codegen.js     Generates the exported code
 src/ui.js          Library sidebar, Design inspector, Code views
 src/styles.css     Styling and theming
+src/v2/            Timeline mode: scenes, store, sequence compiler,
+                   preview, timeline editor, inspector, export
 ```
 
 Adding a preset is a matter of appending an entry to `src/presets.js`. Adding an animatable property means adding one entry to `PROPS` in `src/props.js`. Adding a component means one entry in `src/components.js` (markup, parts, CSS), one option in `ELEMENT_TYPES`, and a preset that gives it a default animation.

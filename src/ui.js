@@ -929,8 +929,8 @@ const CODE_TABS = [
 
 let activeCodeTab = "script";
 
-export function renderCode(container, state, { onToast, full = false }) {
-  const code = generateAll(state);
+export function renderCode(container, state, { onToast, full = false, code: prebuilt = null }) {
+  const code = prebuilt || generateAll(state);
   container.innerHTML = "";
 
   const tabs = h("div", { class: "code-tabs", role: "tablist", "aria-label": "Code format" });

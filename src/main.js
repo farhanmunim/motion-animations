@@ -3,6 +3,7 @@ import { renderPreview } from "./preview.js";
 import { renderLibrary, renderDesign, renderCode, copy, isDirty } from "./ui.js";
 import { generateVanilla } from "./codegen.js";
 import { merge } from "./state.js";
+import { mountTimeline } from "./v2/index.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -110,15 +111,59 @@ schedulePreview(true);
 
 /* --- Top bar actions ----------------------------------------------------- */
 
-$("#btn-replay").addEventListener("click", () => replay());
+/* --- Modes: Quick (v1) and Timeline (v2) ---------------------------------- */
 
-$("#btn-reset").addEventListener("click", () => {
-  store.replace({ tracks: [], name: "Untitled animation", presetId: null }, { rerender: true });
-  toast("Blank canvas. Add a property to start.");
-});
+let timelineCtl = null;
+const quickCtl = {
+  replay: () => replay(),
+  reset: () => {
+    store.replace({ tracks: [], name: "Untitled animation", presetId: null }, { rerender: true });
+    toast("Blank canvas. Add a property to start.");
+  },
+  shareUrl: () => store.shareUrl(),
+  renderExport: (container) => renderCode(container, store.get(), { onToast: toast, full: true }),
+  undo: () => store.undo(),
+};
+const active = () => (document.body.dataset.mode === "timeline" ? timelineCtl : quickCtl);
+
+function setMode(mode) {
+  document.body.dataset.mode = mode;
+  for (const b of document.querySelectorAll(".mode-switch .mode")) {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  }
+  if (mode === "timeline" && !timelineCtl) {
+    timelineCtl = mountTimeline({
+      library: $("#t-library"),
+      stage: $("#t-stage"),
+      timelineEl: $("#t-timeline"),
+      design: $("#t-design"),
+      code: $("#t-code"),
+      exportBody: $("#export-body"),
+      setStatus,
+      toast,
+    });
+  } else if (mode === "timeline") {
+    timelineCtl.refresh();
+  } else {
+    schedulePreview(true);
+  }
+  selectTab(document.querySelector(".tabs .tab.active")?.dataset.tab || "design");
+  try {
+    localStorage.setItem("motion-studio:mode", mode);
+  } catch {
+    /* ignore */
+  }
+}
+for (const b of document.querySelectorAll(".mode-switch .mode")) b.addEventListener("click", () => setMode(b.dataset.mode));
+
+$("#btn-replay").addEventListener("click", () => active().replay());
+
+$("#btn-reset").addEventListener("click", () => active().reset());
 
 $("#btn-share").addEventListener("click", () => {
-  const url = store.shareUrl();
+  const url = active().shareUrl();
   history.replaceState(null, "", url);
   copy(url, toast, "Share link copied");
 });
@@ -143,9 +188,7 @@ function dialog(backdrop, openBtn, closeBtn, onOpen) {
   return { open, close };
 }
 const exportModal = $("#export-modal");
-const exportDialog = dialog(exportModal, $("#btn-export"), $("#btn-close-export"), () =>
-  renderCode($("#export-body"), store.get(), { onToast: toast, full: true }),
-);
+const exportDialog = dialog(exportModal, $("#btn-export"), $("#btn-close-export"), () => active().renderExport($("#export-body")));
 const shortcutsDialog = dialog($("#shortcuts-modal"), $("#btn-shortcuts"), $("#btn-close-shortcuts"));
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
@@ -154,11 +197,11 @@ document.addEventListener("keydown", (e) => {
   }
   if ((e.metaKey || e.ctrlKey) && e.key === "z" && !isTyping(e)) {
     e.preventDefault();
-    store.undo();
+    active().undo();
   }
   if (e.key === " " && !isTyping(e) && !e.target.closest("button, [role=button]")) {
     e.preventDefault();
-    replay();
+    active().replay();
   }
 });
 
@@ -178,6 +221,8 @@ function selectTab(name) {
   }
   designPanel.classList.toggle("hidden", name !== "design");
   codePanel.classList.toggle("hidden", name !== "code");
+  $("#t-design").classList.toggle("hidden", name !== "design");
+  $("#t-code").classList.toggle("hidden", name !== "code");
 }
 for (const tab of document.querySelectorAll(".tabs .tab")) {
   tab.addEventListener("click", () => selectTab(tab.dataset.tab));
@@ -205,6 +250,20 @@ for (const b of document.querySelectorAll(".mobile-nav button")) {
   b.addEventListener("click", () => showView(b.dataset.view));
 }
 document.body.dataset.view = "stage";
+
+{
+  let mode = "quick";
+  if (location.hash.startsWith("#t=")) mode = "timeline";
+  else {
+    try {
+      mode = localStorage.getItem("motion-studio:mode") || "quick";
+    } catch {
+      /* ignore */
+    }
+  }
+  if (mode === "timeline") setMode("timeline");
+  else document.body.dataset.mode = "quick";
+}
 
 // Re-run the preview when the stage is resized (e.g. rotating a phone).
 new ResizeObserver(() => {

@@ -67,6 +67,10 @@
           <h1 class="brand-name">Motion Studio</h1>
           <span class="brand-sub" title="Motion Studio v1.0.0">v1</span>
         </a>
+        <div class="mode-switch" role="tablist" aria-label="Editor mode">
+          <button type="button" class="mode active" data-mode="quick" role="tab" aria-selected="true">Quick</button>
+          <button type="button" class="mode" data-mode="timeline" role="tab" aria-selected="false">Timeline <span class="mode-tag">v2</span></button>
+        </div>
         <div class="topbar-actions">
           <button class="btn ghost" id="btn-theme" title="Toggle light / dark theme" aria-label="Toggle theme">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -86,7 +90,8 @@
             <h2 id="library-title">Library</h2>
             <p class="hint">Pick one to edit, or copy its code as is.</p>
           </div>
-          <div class="preset-list" id="preset-list"></div>
+          <div class="preset-list q-only" id="preset-list"></div>
+          <div class="preset-list t-only" id="t-library"></div>
         </aside>
 
         <section class="stage-wrap" aria-labelledby="preview-title">
@@ -104,7 +109,9 @@
               </button>
             </div>
           </div>
-          <div class="stage" id="stage" tabindex="-1"></div>
+          <div class="stage q-only" id="stage" tabindex="-1"></div>
+          <div class="stage t-only" id="t-stage" tabindex="-1"></div>
+          <div class="t-only" id="t-timeline" aria-label="Timeline"></div>
         </section>
 
         <aside class="panel inspector" id="inspector" aria-labelledby="inspector-title">
@@ -115,8 +122,10 @@
             <button class="tab active" data-tab="design" role="tab" id="tab-btn-design" aria-selected="true" aria-controls="tab-design">Design</button>
             <button class="tab" data-tab="code" role="tab" id="tab-btn-code" aria-selected="false" aria-controls="tab-code" tabindex="-1">Code</button>
           </div>
-          <div class="tab-panel" id="tab-design" role="tabpanel" aria-labelledby="tab-btn-design"></div>
-          <div class="tab-panel hidden" id="tab-code" role="tabpanel" aria-labelledby="tab-btn-code"></div>
+          <div class="tab-panel q-only" id="tab-design" role="tabpanel" aria-labelledby="tab-btn-design"></div>
+          <div class="tab-panel q-only hidden" id="tab-code" role="tabpanel" aria-labelledby="tab-btn-code"></div>
+          <div class="tab-panel t-only" id="t-design" role="tabpanel" aria-labelledby="tab-btn-design"></div>
+          <div class="tab-panel t-only hidden" id="t-code" role="tabpanel" aria-labelledby="tab-btn-code"></div>
         </aside>
       </main>
 
