@@ -1663,11 +1663,11 @@ body[data-mode="timeline"] .stage-wrap {
   font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-2);
+  color: var(--text-1);
   position: relative;
 }
-.tl-el.active {
-  color: var(--text-1);
+.tl-el:not(.active) .tl-el-name {
+  opacity: 0.78;
 }
 .tl-el-name {
   flex: 1;
