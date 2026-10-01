@@ -110,6 +110,7 @@ export function createTimelineStore(initialPreset) {
     shareUrl() {
       const { selected, ...rest } = state;
       const url = new URL(location.href);
+      url.pathname = "/v2";
       url.hash = "t=" + encode(rest);
       return url.toString();
     },

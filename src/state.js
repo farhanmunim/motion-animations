@@ -149,6 +149,7 @@ export function createStore() {
     },
     shareUrl() {
       const url = new URL(location.href);
+      url.pathname = "/";
       url.hash = "d=" + encode(state);
       return url.toString();
     },

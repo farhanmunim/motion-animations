@@ -150,6 +150,10 @@ function setMode(mode) {
     schedulePreview(true);
   }
   selectTab(document.querySelector(".tabs .tab.active")?.dataset.tab || "design");
+  // Timeline mode lives at /v2; Quick mode at /.
+  const path = mode === "timeline" ? "/v2" : "/";
+  if (location.pathname.replace(/\/$/, "") !== path.replace(/\/$/, "")) history.replaceState(null, "", path);
+  document.title = mode === "timeline" ? "Motion Studio – Timeline (v2): choreograph elements on one timeline" : "Motion Studio – Visual animation builder for motion.dev";
   try {
     localStorage.setItem("motion-studio:mode", mode);
   } catch {
@@ -252,16 +256,9 @@ for (const b of document.querySelectorAll(".mobile-nav button")) {
 document.body.dataset.view = "stage";
 
 {
-  let mode = "quick";
-  if (location.hash.startsWith("#t=")) mode = "timeline";
-  else {
-    try {
-      mode = localStorage.getItem("motion-studio:mode") || "quick";
-    } catch {
-      /* ignore */
-    }
-  }
-  if (mode === "timeline") setMode("timeline");
+  // /v2 (or a #t= share link) opens Timeline mode; / opens Quick mode.
+  const atV2 = /^\/v2\/?$/.test(location.pathname) || location.hash.startsWith("#t=");
+  if (atV2) setMode("timeline");
   else document.body.dataset.mode = "quick";
 }
 
