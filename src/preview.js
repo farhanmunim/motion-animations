@@ -112,7 +112,8 @@ function addItemClass(html) {
 
 /** CSS custom properties that drive the demo element's look. */
 export function elementCss(el) {
-  return `--demo-color:${el.color};--demo-text:${el.textColor};--demo-radius:${el.radius}px;--demo-size:${el.size}px;`;
+  const text = el.textColor === "auto" ? (el.type === "text" ? "var(--text-1)" : "#ffffff") : el.textColor;
+  return `--demo-color:${el.color};--demo-text:${text};--demo-radius:${el.radius}px;--demo-size:${el.size}px;`;
 }
 
 function clamp(n, a, b) {
@@ -146,7 +147,7 @@ export function renderPreview(stage, state, setStatus) {
   const style = component ? `<style>${componentCss(el.type, el)}</style>` : "";
   const inner = `<div class="stage-inner" style="${elementCss(el)}">${style}${elementMarkup(el)}</div>`;
   stage.innerHTML = scrolly
-    ? `<div class="scroll-filler top"><span>Scroll down ↓</span></div>${inner}<div class="scroll-filler bottom"><span>Keep scrolling</span></div>`
+    ? `<div class="scroll-filler top"><span>The element is below. Scroll down to reveal it</span><i>↓</i></div>${inner}<div class="scroll-filler bottom"><span>Keep scrolling, then scroll back up to replay</span></div>`
     : inner;
   stage.scrollTop = 0;
 

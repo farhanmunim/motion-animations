@@ -697,9 +697,23 @@ textarea:focus-visible {
 .scroll-filler {
   height: 100%;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-3);
+  color: var(--text-2);
+  font: 500 var(--fs-lg) var(--font-sans);
+  text-align: center;
+  padding: var(--sp-6);
+}
+.scroll-filler i {
+  font-style: normal;
+  font-size: 28px;
   color: var(--text-3);
-  font: var(--fs-sm) var(--font-mono);
+  animation: nudge 1.4s ease-in-out infinite;
+}
+@keyframes nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
 }
 .scroll-filler.bottom {
   height: 120%;
@@ -723,9 +737,6 @@ textarea:focus-visible {
   color: var(--demo-text);
   text-align: center;
   max-width: 24ch;
-}
-:root:not([data-theme="dark"]) .demo-text {
-  --demo-text: var(--text-1);
 }
 .demo-split .motion-item,
 .demo-split .motion-word {
@@ -948,6 +959,10 @@ textarea:focus-visible {
   align-items: center;
   gap: var(--sp-3);
   min-width: 0;
+}
+.auto-toggle {
+  margin-left: var(--sp-1);
+  white-space: nowrap;
 }
 .field-controls.bezier {
   display: grid;

@@ -11,7 +11,7 @@ export const DEFAULT_STATE = {
     type: "box",
     text: "Hello",
     color: "#7c3aed",
-    textColor: "#ffffff",
+    textColor: "auto", // "auto" follows the theme for headings and is white on accent backgrounds
     radius: 16,
     size: 120,
     count: 4,

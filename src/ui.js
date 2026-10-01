@@ -3,7 +3,7 @@
  * Code views. Plain DOM, no framework, so it stays tiny and hackable.
  */
 import { animate } from "motion";
-import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase } from "./props.js";
+import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase, themeTextHex } from "./props.js";
 import { PRESETS } from "./presets.js";
 import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes } from "./compile.js";
 import { generateAll } from "./codegen.js";
@@ -80,9 +80,11 @@ export function textField({ label, value, placeholder, onInput, multiline = fals
   return h("label", { class: "field stacked" }, h("span", { class: "field-label" }, label), input);
 }
 
-export function colorField({ label, value, onInput }) {
-  const color = h("input", { type: "color", value, "aria-label": `${label} picker` });
-  const hex = h("input", { type: "text", class: "hex", value, maxlength: 7, "aria-label": `${label} hex value` });
+export function colorField({ label, value, onInput, allowAuto = false, autoHint = "Follows the theme: dark text on light, light text on dark." }) {
+  const isAuto = value === "auto";
+  const shown = isAuto ? themeTextHex() : value;
+  const color = h("input", { type: "color", value: shown, "aria-label": `${label} picker`, disabled: isAuto });
+  const hex = h("input", { type: "text", class: "hex", value: isAuto ? "auto" : value, maxlength: 7, "aria-label": `${label} hex value`, disabled: isAuto });
   color.addEventListener("input", () => {
     hex.value = color.value;
     onInput(color.value);
@@ -93,7 +95,35 @@ export function colorField({ label, value, onInput }) {
       onInput(hex.value);
     }
   });
-  return h("label", { class: "field" }, h("span", { class: "field-label" }, label), h("span", { class: "field-controls color" }, color, hex));
+  const controls = h("span", { class: "field-controls color" }, color, hex);
+  if (allowAuto) {
+    controls.append(
+      h(
+        "label",
+        { class: "toggle small auto-toggle", title: autoHint },
+        h("input", {
+          type: "checkbox",
+          checked: isAuto,
+          onChange: (e) => {
+            const auto = e.target.checked;
+            color.disabled = auto;
+            hex.disabled = auto;
+            if (auto) {
+              hex.value = "auto";
+              onInput("auto");
+            } else {
+              const v = themeTextHex();
+              color.value = v;
+              hex.value = v;
+              onInput(v);
+            }
+          },
+        }),
+        h("span", {}, "Auto"),
+      ),
+    );
+  }
+  return h("label", { class: "field" }, h("span", { class: "field-label" }, label), controls);
 }
 
 export function toggleField({ label, value, hint, onChange }) {
@@ -413,7 +443,7 @@ function renderElementSection(state, set) {
     kids.push(
       h("p", { class: "hint" }, "A working component with real markup. Each part (bars, panel, items...) can be animated on its own in the Animate section below."),
       colorField({ label: "Accent color", value: el.color, onInput: (v) => set({ element: { color: v } }) }),
-      colorField({ label: "Text on accent", value: el.textColor, onInput: (v) => set({ element: { textColor: v } }) }),
+      colorField({ label: "Text on accent", value: el.textColor, allowAuto: true, autoHint: "Auto means white text on the accent colour.", onInput: (v) => set({ element: { textColor: v } }) }),
       numberField({ label: "Corner radius", value: el.radius, min: 0, max: 40, unit: "px", onInput: (v) => set({ element: { radius: v } }) }),
     );
     return section("Component", "Pick a UI component. Copy the code and it works as-is on your page.", ...kids);
@@ -457,7 +487,7 @@ function renderElementSection(state, set) {
     kids.push(colorField({ label: "Color", value: el.color, onInput: (v) => set({ element: { color: v } }) }));
   }
   if (el.type === "text" || el.type === "button" || el.type === "list" || el.type === "grid") {
-    kids.push(colorField({ label: "Text color", value: el.textColor, onInput: (v) => set({ element: { textColor: v } }) }));
+    kids.push(colorField({ label: "Text color", value: el.textColor, allowAuto: true, onInput: (v) => set({ element: { textColor: v } }) }));
   }
   if (el.type === "box" || el.type === "circle") {
     kids.push(numberField({ label: "Size", value: el.size, min: 20, max: 320, unit: "px", onInput: (v) => set({ element: { size: v } }) }));
@@ -562,7 +592,7 @@ function renderTracksSection(state, set, store) {
     if (!addSel.value) return;
     const [part, key] = addSel.value.split("|");
     const def = PROPS[key];
-    const from = def.kind === "color" ? (key === "backgroundColor" ? state.element.color : def.def) : def.def;
+    const from = def.kind === "color" ? (key === "backgroundColor" ? state.element.color : key === "color" ? "auto" : def.def) : def.def;
     const to = def.kind === "color" ? "#ec4899" : defaultTo(key, state);
     const track = { prop: key, values: [from, to] };
     if (part) track.part = part;
@@ -676,6 +706,7 @@ function trackCard(track, index, state, set, store) {
       control = colorField({
         label,
         value: value,
+        allowAuto: track.prop === "color",
         onInput: (v) => {
           const values = [...track.values];
           values[vi] = v;

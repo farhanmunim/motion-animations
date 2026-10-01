@@ -79,11 +79,28 @@ export const PROPS = {
 
 export const PROP_GROUPS = ["Transform", "Appearance", "Size"];
 
+/**
+ * The theme's text colour as hex. "Auto" colours resolve to this in the
+ * preview (and in exports, so what you see is what you get).
+ */
+export function themeTextHex() {
+  if (typeof document === "undefined") return "#111111";
+  const probe = document.createElement("span");
+  probe.style.color = "var(--text-1)";
+  probe.style.position = "absolute";
+  document.body.append(probe);
+  const rgb = getComputedStyle(probe).color;
+  probe.remove();
+  const m = rgb.match(/\d+/g);
+  if (!m || m.length < 3) return "#111111";
+  return "#" + m.slice(0, 3).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
+}
+
 /** Convert a raw UI value into the value motion.dev should animate to. */
 export function toMotionValue(key, raw) {
   const def = PROPS[key];
   if (!def) return raw;
-  if (def.kind === "color") return raw;
+  if (def.kind === "color") return raw === "auto" ? themeTextHex() : raw;
   const n = Number(raw);
   return def.format ? def.format(n) : n;
 }

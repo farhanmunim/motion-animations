@@ -496,7 +496,7 @@ export const PRESETS = [
       tracks: [
         { prop: "y", values: [0, -14] },
         { prop: "scale", values: [1, 1.25] },
-        { prop: "color", values: ["#ffffff", "#ec4899"] },
+        { prop: "color", values: ["auto", "#ec4899"] },
       ],
       transition: spring(400, 14),
     },

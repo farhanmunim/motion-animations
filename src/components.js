@@ -558,7 +558,7 @@ export function componentCss(type, el) {
   if (!c) return "";
   return c.css
     .replace(/\{\{color\}\}/g, el.color)
-    .replace(/\{\{text\}\}/g, el.textColor)
+    .replace(/\{\{text\}\}/g, el.textColor === "auto" ? "#ffffff" : el.textColor)
     .replace(/\{\{radius\}\}/g, String(Number(el.radius) || 0));
 }
 

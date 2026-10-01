@@ -290,6 +290,8 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
 
 export function generateCss(state) {
   const el = state.element;
+  // "Auto" text colour: inherit the page's colour for headings, white on accent backgrounds.
+  const textColor = el.textColor === "auto" ? (el.type === "text" ? "inherit" : "#ffffff") : el.textColor;
   const has3d = state.tracks.some((t) => t.prop === "rotateX" || t.prop === "rotateY");
   const css = [];
   if (isComponent(el.type)) {
@@ -327,14 +329,14 @@ export function generateCss(state) {
     case "text":
       css.push(`.demo-text {
   font: 700 clamp(28px, 5vw, 56px) / 1.15 system-ui, sans-serif;
-  color: ${el.textColor};
+  color: ${textColor};
   margin: 0;
 }`);
       break;
     case "button":
       css.push(`.demo-button {
   font: 600 16px system-ui, sans-serif;
-  color: ${el.textColor};
+  color: ${textColor};
   background: ${el.color};
   border: 0;
   border-radius: ${el.radius}px;
@@ -377,7 +379,7 @@ export function generateCss(state) {
 }
 .demo-item {
   background: ${el.color};
-  color: ${el.textColor};
+  color: ${textColor};
   padding: 14px 18px;
   border-radius: ${el.radius}px;
   font-weight: 600;
@@ -393,7 +395,7 @@ export function generateCss(state) {
 .demo-tile {
   aspect-ratio: 1;
   background: ${el.color};
-  color: ${el.textColor};
+  color: ${textColor};
   border-radius: ${el.radius}px;
   display: grid;
   place-items: center;
