@@ -677,6 +677,11 @@ textarea:focus-visible {
   perspective: 1000px;
   color: var(--text-1);
 }
+.stage.flat,
+.stage.flat .stage-inner {
+  perspective: none;
+  transform-style: flat;
+}
 .stage.scrolly {
   overflow-y: auto;
   display: block;
@@ -742,6 +747,13 @@ textarea:focus-visible {
 .demo-split .motion-word {
   display: inline-block;
   white-space: pre;
+}
+.motion-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.1em 0.04em 0.18em;
+  margin: -0.1em -0.04em -0.18em;
 }
 .demo-button {
   font-weight: 600;
@@ -1518,8 +1530,8 @@ body:not([data-mode="timeline"]) .t-only {
   border: 0;
   border-radius: var(--r-sm);
   background: transparent;
-  color: var(--text-1);
-  opacity: 0.72;
+  /* Dim the label only: opacity would also dim the tag inside. */
+  color: color-mix(in srgb, var(--text-1) 72%, transparent);
   font-size: var(--fs-sm);
   font-weight: 500;
   cursor: pointer;
@@ -1529,7 +1541,7 @@ body:not([data-mode="timeline"]) .t-only {
 }
 .mode:hover,
 .mode.active {
-  opacity: 1;
+  color: var(--text-1);
 }
 .mode.active {
   background: var(--surface);
@@ -1592,8 +1604,15 @@ body[data-mode="timeline"] .stage-wrap {
 .tl-add {
   height: 26px;
   width: auto;
+  max-width: 160px;
+  text-overflow: ellipsis;
   font-size: var(--fs-sm);
   padding: 0 var(--sp-3);
+}
+.tl,
+.tl-head,
+.tl-tools {
+  min-width: 0;
 }
 .tl-zoom-wrap {
   display: flex;
@@ -1813,6 +1832,14 @@ body[data-mode="timeline"] .stage-wrap {
     grid-template-columns: 130px minmax(0, 1fr);
   }
   .tl-zoom-wrap {
+    display: none;
+  }
+  .tl-add {
+    max-width: 128px;
+  }
+}
+@media (max-width: 480px) {
+  .tl-time {
     display: none;
   }
 }

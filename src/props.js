@@ -14,6 +14,9 @@
 export const PROPS = {
   x: { label: "Move X", group: "Transform", kind: "number", unit: "px", min: -400, max: 400, step: 1, def: 0 },
   y: { label: "Move Y", group: "Transform", kind: "number", unit: "px", min: -400, max: 400, step: 1, def: 0 },
+  z: { label: "Depth (Z, 3D)", group: "Transform", kind: "number", unit: "px", min: -200, max: 200, step: 1, def: 0 },
+  xPercent: { label: "Slide X (% of own width)", group: "Transform", motion: "x", kind: "number", unit: "%", min: -200, max: 200, step: 1, def: 0, format: (v) => `${v}%` },
+  yPercent: { label: "Slide Y (% of own height)", group: "Transform", motion: "y", kind: "number", unit: "%", min: -200, max: 200, step: 1, def: 0, format: (v) => `${v}%` },
   scale: { label: "Scale", group: "Transform", kind: "number", unit: "×", min: 0, max: 3, step: 0.01, def: 1 },
   scaleX: { label: "Scale X", group: "Transform", kind: "number", unit: "×", min: 0, max: 3, step: 0.01, def: 1 },
   scaleY: { label: "Scale Y", group: "Transform", kind: "number", unit: "×", min: 0, max: 3, step: 0.01, def: 1 },
@@ -152,6 +155,7 @@ export const TRIGGERS = [
   { value: "toggle", label: "On click", hint: "Click to play, click again to reverse. Components open and close." },
   { value: "hover", label: "On hover", hint: "Plays when the pointer enters. Reverts when it leaves." },
   { value: "press", label: "On press", hint: "Plays while the element is pressed. Reverts on release." },
+  { value: "pointer", label: "Follow pointer", hint: "Tracks the pointer continuously: 3D tilt, glow, parallax and magnetic effects. Each property follows the pointer's X, its Y, or whether it is over the element." },
   { value: "inView", label: "When scrolled into view", hint: "Plays once the element enters the viewport." },
   { value: "scroll", label: "Linked to scroll", hint: "Scrubs with the scroll position. No timing needed." },
 ];
@@ -174,6 +178,13 @@ export const ELEMENT_TYPES = [
   { value: "tooltip", label: "Tooltip", group: "Components" },
   { value: "toast", label: "Toast notification", group: "Components" },
   { value: "fab", label: "Floating action menu", group: "Components" },
+  { value: "tiltcard", label: "Tilt card (glare & depth)", group: "Components" },
+  { value: "spotlight", label: "Spotlight card", group: "Components" },
+  { value: "parallax", label: "Parallax layers", group: "Components" },
+  { value: "flipcard", label: "Flip card", group: "Components" },
+  { value: "imagecard", label: "Image card reveal", group: "Components" },
+  { value: "linkarrow", label: "Link: underline & arrow", group: "Components" },
+  { value: "fillbtn", label: "Fill sweep button", group: "Components" },
 ];
 
 export const TEXT_SPLITS = [

@@ -5,7 +5,7 @@
 import { animate } from "motion";
 import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase, themeTextHex } from "./props.js";
 import { PRESETS } from "./presets.js";
-import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes } from "./compile.js";
+import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes, isMulti, defaultAxis, needs3d } from "./compile.js";
 import { generateAll } from "./codegen.js";
 import { COMPONENTS, isComponent, partLabel } from "./components.js";
 import { merge, clone, DEFAULT_STATE } from "./state.js";
@@ -171,7 +171,7 @@ const CATEGORIES = [
   { id: "entrance", label: "Entrances", short: "Entrances", tag: "entrance" },
   { id: "text", label: "Text", short: "Text", tag: "text" },
   { id: "multiple", label: "Lists & grids", short: "Lists", tag: "multiple" },
-  { id: "interaction", label: "Hover & press", short: "Hover", tag: "interaction" },
+  { id: "interaction", label: "Pointer, hover & press", short: "Pointer", tag: "interaction" },
   { id: "scroll", label: "Scroll", short: "Scroll", tag: "scroll" },
   { id: "loop", label: "Loops & attention", short: "Loops", tag: "loop", extra: "attention" },
 ];
@@ -376,7 +376,7 @@ export function isDirty(state) {
   const preset = PRESETS.find((p) => p.id === state.presetId);
   if (!preset) return false;
   const expected = merge(clone(DEFAULT_STATE), { ...preset.state, name: preset.name, presetId: preset.id });
-  const pick = (s) => JSON.stringify([s.element, s.trigger, s.tracks, s.transition, s.stagger, s.inView, s.scroll, s.hover]);
+  const pick = (s) => JSON.stringify([s.element, s.trigger, s.tracks, s.transition, s.stagger, s.inView, s.scroll, s.hover, s.toggle, s.pointer]);
   return pick(expected) !== pick(state);
 }
 
@@ -462,6 +462,16 @@ function renderElementSection(state, set) {
         onChange: (v) => set({ element: { split: v }, stagger: { enabled: v !== "none" ? true : state.stagger.enabled } }, true),
       }),
     );
+    if (el.split !== "none") {
+      kids.push(
+        toggleField({
+          label: "Mask each piece",
+          value: !!el.mask,
+          hint: "Clip every word or letter so it slides up from behind an invisible line. Pair it with Slide Y (%).",
+          onChange: (v) => set({ element: { mask: v } }, true),
+        }),
+      );
+    }
   }
   if (el.type === "list" || el.type === "grid") {
     kids.push(numberField({ label: "Items", value: el.count, min: 1, max: 12, step: 1, onInput: (v) => set({ element: { count: v } }) }));
@@ -502,7 +512,7 @@ function renderElementSection(state, set) {
 function renderTriggerSection(state, set) {
   const kids = [];
   const comp = isComponent(state.element.type) ? COMPONENTS[state.element.type] : null;
-  const options = comp ? TRIGGERS.filter((t) => comp.triggers.includes(t.value)) : TRIGGERS;
+  const options = comp ? TRIGGERS.filter((t) => comp.triggers.includes(t.value)) : TRIGGERS.filter((t) => t.value !== "pointer" || !isMulti(state));
   const trigger = effectiveTrigger(state);
   kids.push(
     segmented({
@@ -529,6 +539,34 @@ function renderTriggerSection(state, set) {
       }),
       h("p", { class: "hint" }, "Great for toasts and notices: open on click, close on their own."),
     );
+  }
+  if (trigger === "pointer") {
+    kids.push(
+      selectField({
+        label: "Track pointer over",
+        value: state.pointer?.area || "element",
+        options: [
+          { value: "element", label: "The element" },
+          { value: "scene", label: "The whole page" },
+        ],
+        hint: "The element: tilt and glow while you hover it. The whole page: parallax that reacts to the pointer anywhere.",
+        onChange: (v) => set({ pointer: { area: v } }),
+      }),
+    );
+    if (needs3d(state)) {
+      kids.push(
+        numberField({
+          label: "Perspective",
+          value: state.pointer?.perspective ?? 900,
+          min: 300,
+          max: 2400,
+          step: 50,
+          unit: "px",
+          hint: "Lower = stronger 3D depth, higher = flatter.",
+          onInput: (v) => set({ pointer: { perspective: v } }),
+        }),
+      );
+    }
   }
   if (trigger === "hover") {
     kids.push(toggleField({ label: "Revert when the pointer leaves", value: state.hover.revert, onChange: (v) => set({ hover: { revert: v } }) }));
@@ -595,16 +633,54 @@ function renderTracksSection(state, set, store) {
     const from = def.kind === "color" ? (key === "backgroundColor" ? state.element.color : key === "color" ? "auto" : def.def) : def.def;
     const to = def.kind === "color" ? "#ec4899" : defaultTo(key, state);
     const track = { prop: key, values: [from, to] };
+    if (effectiveTrigger(state) === "pointer") {
+      track.axis = defaultAxis(key);
+      track.values = pointerRange(key, def, from, to);
+    }
     if (part) track.part = part;
     store.patch({ tracks: [...state.tracks, track] }, { rerender: true });
   });
   kids.push(addSel);
 
-  const subtitle = comp
+  const subtitle = effectiveTrigger(state) === "pointer"
+    ? "Each property follows the pointer between two values. Choose what drives it: the pointer's X, its Y, or whether it is over the element."
+    : comp
     ? "First value = closed, last value = open. Pick a part of the component, then a property."
     : "Each property goes from its first value to its last. Add keyframes for in-between steps.";
-  kids.push(h("p", { class: "hint" }, "Want a property to change, hold, then change again? Add keyframes to that property and set when each one happens."));
+  if (effectiveTrigger(state) !== "pointer") kids.push(h("p", { class: "hint" }, "Want a property to change, hold, then change again? Add keyframes to that property and set when each one happens."));
   return section("Animate", subtitle, ...kids);
+}
+
+const POINTER_AXES = [
+  { value: "x", label: "Pointer X (left to right)" },
+  { value: "y", label: "Pointer Y (top to bottom)" },
+  { value: "enter", label: "Pointer over the element" },
+];
+const POINTER_LABELS = {
+  x: ["At the left edge", "At the right edge"],
+  y: ["At the top edge", "At the bottom edge"],
+  enter: ["Pointer outside", "Pointer over it"],
+};
+const POINTER_RANGES = {
+  rotateX: [10, -10],
+  rotateY: [-10, 10],
+  x: [-12, 12],
+  y: [-12, 12],
+  z: [0, 40],
+  scale: [1, 1.05],
+  scaleX: [1, 1.05],
+  scaleY: [1, 1.05],
+  rotate: [-6, 6],
+  skewX: [-6, 6],
+  skewY: [-6, 6],
+  opacity: [0, 1],
+  blur: [0, 6],
+  shadow: [0, 40],
+};
+
+/** Start values for a property that follows the pointer. */
+function pointerRange(key, def, from, to) {
+  return POINTER_RANGES[key] || (def.kind === "color" ? [from, to] : [def.def, to]);
 }
 
 /** A sensible "to" value when a property is added. */
@@ -615,6 +691,11 @@ function defaultTo(key, state) {
       return 120;
     case "y":
       return -80;
+    case "z":
+      return 40;
+    case "xPercent":
+    case "yPercent":
+      return 100;
     case "scale":
     case "scaleX":
     case "scaleY":
@@ -648,7 +729,9 @@ function defaultTo(key, state) {
 function trackCard(track, index, state, set, store) {
   const def = PROPS[track.prop] || { label: track.prop, kind: "number", min: -100, max: 100, step: 1 };
   const times = trackTimes(track);
-  const timed = state.transition.type === "tween" || effectiveTrigger(state) === "scroll";
+  const pointerMode = effectiveTrigger(state) === "pointer";
+  const axis = track.axis || defaultAxis(track.prop);
+  const timed = !pointerMode && (state.transition.type === "tween" || effectiveTrigger(state) === "scroll");
   const updateTrack = (patch, rerender = false) => {
     const tracks = state.tracks.map((t, i) => (i === index ? { ...t, ...patch } : t));
     store.patch({ tracks }, { rerender });
@@ -660,7 +743,7 @@ function trackCard(track, index, state, set, store) {
     { class: "track-head" },
     h("strong", {}, track.part ? [h("span", { class: "part-label" }, partLabel(state.element.type, track.part), " · "), propLabel(track.prop)] : propLabel(track.prop)),
     h("span", { class: "spacer" }),
-    h(
+    pointerMode ? null : h(
       "button",
       {
         class: "btn tiny ghost",
@@ -691,16 +774,19 @@ function trackCard(track, index, state, set, store) {
 
   const rows = h("div", { class: "keyframes" });
   const n = track.values.length;
+  // Following the pointer uses two values only: the ends of the range.
+  const visible = pointerMode ? [0, n - 1] : track.values.map((_, i) => i);
 
   // Timeline strip: where each keyframe sits within the duration.
   let strip = null;
-  if (n > 2) {
+  if (n > 2 && !pointerMode) {
     strip = h("div", { class: `timeline ${timed ? "" : "muted"}`, title: timed ? "Keyframe positions within the duration" : "Springs play keyframes evenly. Switch Timing to Timed for precise positions." });
     times.forEach((t, vi) => strip.append(h("span", { class: "tl-dot", style: `left:${t * 100}%` }, h("i", {}, `${Math.round(t * 100)}%`))));
   }
 
-  track.values.forEach((value, vi) => {
-    const label = vi === 0 ? "From" : vi === n - 1 ? "To" : `Step ${vi}`;
+  visible.forEach((vi) => {
+    const value = track.values[vi];
+    const label = pointerMode ? POINTER_LABELS[axis][vi === 0 ? 0 : 1] : vi === 0 ? "From" : vi === n - 1 ? "To" : `Step ${vi}`;
     let control;
     if (def.kind === "color") {
       control = colorField({
@@ -756,7 +842,7 @@ function trackCard(track, index, state, set, store) {
       });
       row.append(h("label", { class: "at-wrap" }, at, h("span", {}, "%")));
     }
-    if (n > 2) {
+    if (n > 2 && !pointerMode) {
       row.append(
         h(
           "button",
@@ -785,15 +871,59 @@ function trackCard(track, index, state, set, store) {
   });
 
   const card = h("div", { class: "track" }, head);
+  if (pointerMode) {
+    card.append(
+      selectField({
+        label: "Follows",
+        value: axis,
+        options: POINTER_AXES,
+        hint: "What drives this property: the pointer's horizontal or vertical position, or simply whether it is over the element.",
+        onChange: (v) => updateTrack({ axis: v }, true),
+      }),
+    );
+  }
   if (strip) card.append(strip);
   card.append(rows);
-  if (n > 2) card.append(h("p", { class: "hint tiny" }, timed ? "Each keyframe's % is when it is reached within the duration. Repeat a value to hold it." : "Springs play keyframes evenly. Switch Timing to Timed to position them."));
+  if (n > 2 && !pointerMode) card.append(h("p", { class: "hint tiny" }, timed ? "Each keyframe's % is when it is reached within the duration. Repeat a value to hold it." : "Springs play keyframes evenly. Switch Timing to Timed to position them."));
   return card;
+}
+
+/** Spring mode switch and its fields (shared by Timing and Smoothing). */
+function springFields(t, set) {
+  const kids = [
+    segmented({
+      label: "Spring mode",
+      value: t.springMode,
+      options: [
+        { value: "visual", label: "Simple", hint: "Pick how long it should feel and how bouncy." },
+        { value: "physics", label: "Physics", hint: "Tune stiffness, damping and mass directly." },
+      ],
+      onChange: (v) => set({ transition: { springMode: v } }, true),
+    }),
+  ];
+  if (t.springMode === "visual") {
+    kids.push(
+      numberField({ label: "Feels like", value: t.visualDuration, min: 0.1, max: 3, step: 0.05, unit: "s", hint: "Roughly how long the movement takes.", onInput: (v) => set({ transition: { visualDuration: v } }) }),
+      numberField({ label: "Bounce", value: t.bounce, min: 0, max: 1, step: 0.01, onInput: (v) => set({ transition: { bounce: v } }) }),
+    );
+  } else {
+    kids.push(
+      numberField({ label: "Stiffness", value: t.stiffness, min: 1, max: 1000, step: 1, hint: "Higher = snappier.", onInput: (v) => set({ transition: { stiffness: v } }) }),
+      numberField({ label: "Damping", value: t.damping, min: 0, max: 100, step: 1, hint: "Lower = more wobble.", onInput: (v) => set({ transition: { damping: v } }) }),
+      numberField({ label: "Mass", value: t.mass, min: 0.1, max: 10, step: 0.1, hint: "Heavier = slower to move and settle.", onInput: (v) => set({ transition: { mass: v } }) }),
+    );
+  }
+  return kids;
 }
 
 function renderTimingSection(state, set) {
   const t = state.transition;
   const kids = [];
+
+  if (effectiveTrigger(state) === "pointer") {
+    kids.push(h("p", { class: "hint" }, "The element chases the pointer with a spring. Lower stiffness feels floatier; lower damping adds wobble."), ...springFields(t, set));
+    return section("Smoothing", null, ...kids);
+  }
 
   if (effectiveTrigger(state) === "scroll") {
     kids.push(h("p", { class: "hint" }, "Scroll-linked animations follow your scroll position, so duration and delay do not apply."));

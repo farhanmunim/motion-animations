@@ -16,6 +16,7 @@ export const DEFAULT_STATE = {
     size: 120,
     count: 4,
     split: "none", // for text: "none" | "words" | "chars"
+    mask: false, // for split text: clip each piece so it slides up from behind a line
     animateChildren: false, // for custom HTML: animate each direct child
     customHtml: '<div style="padding:16px 24px;background:#111;color:#fff;border-radius:12px;font-weight:600">Custom</div>',
   },
@@ -47,6 +48,7 @@ export const DEFAULT_STATE = {
   scroll: { offsetStart: "start end", offsetEnd: "end start" },
   hover: { revert: true },
   toggle: { autoClose: 0 }, // seconds; click-opened animations close again after this
+  pointer: { area: "element", perspective: 900 }, // "element" | "scene"; perspective in px
 };
 
 const STORAGE_KEY = "motion-studio:design";

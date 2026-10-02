@@ -123,7 +123,65 @@ export function effectiveTrigger(state) {
     const allowed = getComponent(state.element.type).triggers;
     return allowed.includes(state.trigger) ? state.trigger : allowed[0];
   }
+  // Following the pointer needs one target; groups of items fall back to hover.
+  if (state.trigger === "pointer" && isMulti(state)) return "hover";
   return state.trigger;
+}
+
+/* --- Follow pointer ------------------------------------------------------ */
+
+/**
+ * Which pointer axis drives a property when none was chosen:
+ *   x      pointer position, left (-1) to right (+1)
+ *   y      pointer position, top (-1) to bottom (+1)
+ *   enter  0 while the pointer is outside, 1 while it is over the element
+ */
+export function defaultAxis(prop) {
+  if (["x", "xPercent", "rotateY", "skewX"].includes(prop)) return "x";
+  if (["y", "yPercent", "rotateX", "skewY"].includes(prop)) return "y";
+  return "enter";
+}
+
+/**
+ * Per part: `{ prop: { axis, range: [atMin, atMax] } }`. The first and last
+ * value of each track are used; anything in between is ignored.
+ */
+export function buildFollow(state) {
+  const entries = isComponent(state.element.type)
+    ? getComponent(state.element.type).parts.map((p) => ({ part: p.key, selector: p.selector }))
+    : [{ part: null, selector: null }];
+  return entries
+    .map((e) => {
+      const props = {};
+      for (const t of tracksFor(state, e.part)) {
+        if (!t.values || t.values.length < 2) continue;
+        props[motionKey(t.prop)] = {
+          axis: t.axis || defaultAxis(t.prop),
+          range: [toMotionValue(t.prop, t.values[0]), toMotionValue(t.prop, t.values[t.values.length - 1])],
+        };
+      }
+      return { ...e, props };
+    })
+    .filter((e) => Object.keys(e.props).length);
+}
+
+/** True when any track needs 3D (perspective, and preserve-3d for child layers). */
+export function needs3d(state) {
+  return state.tracks.some((t) => ["rotateX", "rotateY", "z"].includes(t.prop));
+}
+
+/** Spring options from the transition settings. */
+export function springOptions(t) {
+  const o = { type: "spring" };
+  if (t.springMode === "visual") {
+    o.visualDuration = num(t.visualDuration);
+    o.bounce = num(t.bounce);
+  } else {
+    o.stiffness = num(t.stiffness);
+    o.damping = num(t.damping);
+    if (num(t.mass) !== 1) o.mass = num(t.mass);
+  }
+  return o;
 }
 
 /** Marker for raw JS code inside serialized objects (e.g. stagger(...)). */
@@ -141,6 +199,9 @@ export class Raw {
 export function buildTransition(state, { mode = "js", staggerFn = null, multi = isMulti(state), part = null } = {}) {
   const t = state.transition;
   const opts = {};
+
+  // Following the pointer is always a spring: it smooths the chase.
+  if (effectiveTrigger(state) === "pointer") return springOptions(t);
 
   // Per-property keyframe positions (motion reads options[propertyName]).
   const timing = buildTimes(state, part);

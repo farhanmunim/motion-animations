@@ -14,6 +14,7 @@
  */
 
 const TOGGLE_TRIGGERS = ["toggle", "hover", "press", "load", "inView"];
+const POINTER_TRIGGERS = ["pointer", "hover", "toggle", "press", "load", "inView"];
 
 export const COMPONENTS = {
   hamburger: {
@@ -540,6 +541,430 @@ export const COMPONENTS = {
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}`,
+  },
+  tiltcard: {
+    label: "Tilt card (glare & depth)",
+    emoji: "🎴",
+    thumb: "card",
+    markup: `<article class="motion-target tilt-card">
+  <div class="tilt-media"></div>
+  <div class="tilt-body">
+    <span class="tilt-badge">New</span>
+    <strong class="tilt-title">Aurora Pro</strong>
+    <span class="tilt-text">Move your pointer across the card.</span>
+  </div>
+  <div class="tilt-glare" aria-hidden="true"><span class="tilt-spot"></span></div>
+</article>`,
+    parts: [
+      { key: "root", label: "Card", selector: null },
+      { key: "spot", label: "Glare", selector: ".tilt-spot" },
+      { key: "media", label: "Image", selector: ".tilt-media" },
+      { key: "badge", label: "Badge", selector: ".tilt-badge" },
+      { key: "title", label: "Title", selector: ".tilt-title" },
+    ],
+    clicks: [],
+    triggers: POINTER_TRIGGERS,
+    css: `.tilt-card {
+  position: relative;
+  width: 280px;
+  border-radius: {{radius}}px;
+  background: #1c1c22;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: system-ui, sans-serif;
+  transform-style: preserve-3d;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 28px 60px -14px rgba(0, 0, 0, 0.55);
+}
+.tilt-media {
+  height: 150px;
+  margin: 10px;
+  border-radius: calc({{radius}}px - 8px);
+  background: linear-gradient(135deg, {{color}}, #ec4899 62%, #f59e0b);
+}
+.tilt-body {
+  display: grid;
+  gap: 6px;
+  padding: 6px 18px 18px;
+  transform-style: preserve-3d;
+}
+.tilt-badge {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.tilt-title {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.tilt-text {
+  font-size: 13px;
+  opacity: 0.7;
+}
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tilt-spot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 420px;
+  height: 420px;
+  margin: -210px 0 0 -210px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 60%);
+  opacity: 0;
+}`,
+  },
+
+  spotlight: {
+    label: "Spotlight card",
+    emoji: "🔦",
+    thumb: "card",
+    markup: `<article class="motion-target spotlight">
+  <div class="sp-glow" aria-hidden="true"></div>
+  <div class="sp-body">
+    <span class="sp-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg></span>
+    <strong class="sp-title">Precision tooling</strong>
+    <span class="sp-text">A soft light follows your pointer across the surface.</span>
+  </div>
+</article>`,
+    parts: [
+      { key: "root", label: "Card", selector: null },
+      { key: "glow", label: "Glow", selector: ".sp-glow" },
+    ],
+    clicks: [],
+    triggers: POINTER_TRIGGERS,
+    css: `.spotlight {
+  position: relative;
+  width: 300px;
+  border-radius: {{radius}}px;
+  background: #15151b;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+.sp-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 380px;
+  height: 380px;
+  margin: -190px 0 0 -190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, {{color}} 55%, transparent), transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+}
+.sp-body {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 24px;
+}
+.sp-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.sp-title {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.sp-text {
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.7;
+}`,
+  },
+
+  parallax: {
+    label: "Parallax layers",
+    emoji: "🪟",
+    thumb: "grid",
+    markup: `<div class="motion-target parallax">
+  <span class="px-layer px-back"></span>
+  <span class="px-layer px-mid"></span>
+  <span class="px-layer px-front"></span>
+  <div class="px-content">
+    <strong class="px-title">Depth</strong>
+    <span class="px-sub">Move your pointer around</span>
+  </div>
+</div>`,
+    parts: [
+      { key: "back", label: "Back layer", selector: ".px-back" },
+      { key: "mid", label: "Middle layer", selector: ".px-mid" },
+      { key: "front", label: "Front ring", selector: ".px-front" },
+      { key: "content", label: "Text", selector: ".px-content" },
+    ],
+    clicks: [],
+    triggers: POINTER_TRIGGERS,
+    css: `.parallax {
+  position: relative;
+  width: 360px;
+  height: 240px;
+  border-radius: {{radius}}px;
+  background: #101016;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+.px-layer {
+  position: absolute;
+  border-radius: 50%;
+}
+.px-back {
+  width: 260px;
+  height: 260px;
+  left: -60px;
+  top: -90px;
+  background: radial-gradient(circle at 30% 30%, {{color}}, transparent 70%);
+}
+.px-mid {
+  width: 200px;
+  height: 200px;
+  right: -50px;
+  bottom: -70px;
+  background: radial-gradient(circle at 60% 40%, #ec4899, transparent 70%);
+}
+.px-front {
+  width: 70px;
+  height: 70px;
+  left: 62%;
+  top: 20%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+}
+.px-content {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  text-align: center;
+}
+.px-title {
+  font-size: 36px;
+  letter-spacing: -0.03em;
+}
+.px-sub {
+  font-size: 13px;
+  opacity: 0.65;
+}`,
+  },
+  flipcard: {
+    label: "Flip card",
+    emoji: "🪪",
+    thumb: "card",
+    markup: `<div class="motion-target flip">
+  <div class="flip-face flip-front">
+    <span class="flip-kicker">Front</span>
+    <strong class="flip-title">Hover to flip</strong>
+  </div>
+  <div class="flip-face flip-back">
+    <strong class="flip-title">Hello there</strong>
+    <span class="flip-text">The back side has more to say.</span>
+  </div>
+</div>`,
+    parts: [{ key: "root", label: "Card", selector: null }],
+    clicks: [],
+    triggers: ["hover", "toggle", "press", "load", "inView"],
+    css: `.flip {
+  position: relative;
+  width: 260px;
+  height: 170px;
+  transform-style: preserve-3d;
+  font-family: system-ui, sans-serif;
+  color: #fff;
+  cursor: pointer;
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  padding: 20px;
+  text-align: center;
+  border-radius: {{radius}}px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-front {
+  background: linear-gradient(135deg, {{color}}, #ec4899);
+}
+.flip-back {
+  background: #1c1c22;
+  transform: rotateY(180deg);
+}
+.flip-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.flip-title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.flip-text {
+  font-size: 13px;
+  opacity: 0.7;
+}`,
+  },
+
+  imagecard: {
+    label: "Image card reveal",
+    emoji: "🖼️",
+    thumb: "card",
+    markup: `<article class="motion-target imgcard">
+  <div class="ic-image"></div>
+  <div class="ic-shade"></div>
+  <div class="ic-caption">
+    <strong class="ic-title">Northern lights</strong>
+    <span class="ic-meta">Iceland · 12 photos</span>
+  </div>
+</article>`,
+    parts: [
+      { key: "image", label: "Image", selector: ".ic-image" },
+      { key: "shade", label: "Shade", selector: ".ic-shade" },
+      { key: "caption", label: "Caption", selector: ".ic-caption" },
+      { key: "root", label: "Card", selector: null },
+    ],
+    clicks: [],
+    triggers: TOGGLE_TRIGGERS,
+    css: `.imgcard {
+  position: relative;
+  width: 280px;
+  height: 200px;
+  border-radius: {{radius}}px;
+  overflow: hidden;
+  background: #0f0f14;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: system-ui, sans-serif;
+  cursor: pointer;
+}
+.ic-image {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 25% 30%, rgba(236, 72, 153, 0.9), transparent 45%),
+    radial-gradient(circle at 75% 20%, {{color}}, transparent 50%),
+    radial-gradient(circle at 60% 92%, rgba(245, 158, 11, 0.75), transparent 45%),
+    linear-gradient(160deg, #0f172a, #1e1b4b);
+}
+.ic-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), transparent 62%);
+}
+.ic-caption {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  display: grid;
+  gap: 2px;
+}
+.ic-title {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.ic-meta {
+  font-size: 12px;
+  opacity: 0.75;
+}`,
+  },
+
+  linkarrow: {
+    label: "Link: underline & arrow",
+    emoji: "↗️",
+    thumb: "button",
+    markup: `<a class="motion-target ul-link" href="#">
+  <span class="ul-text">Read the story</span>
+  <svg class="ul-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  <span class="ul-line" aria-hidden="true"></span>
+</a>`,
+    parts: [
+      { key: "line", label: "Underline", selector: ".ul-line" },
+      { key: "arrow", label: "Arrow", selector: ".ul-arrow" },
+      { key: "text", label: "Text", selector: ".ul-text" },
+    ],
+    clicks: [],
+    triggers: TOGGLE_TRIGGERS,
+    css: `.ul-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  color: inherit;
+  text-decoration: none;
+  font: 600 17px system-ui, sans-serif;
+}
+.ul-arrow {
+  display: block;
+}
+.ul-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: {{color}};
+  transform-origin: left center;
+}`,
+  },
+
+  fillbtn: {
+    label: "Fill sweep button",
+    emoji: "🌊",
+    thumb: "button",
+    markup: `<button class="motion-target fillbtn">
+  <span class="fb-fill" aria-hidden="true"></span>
+  <span class="fb-label">Get started</span>
+</button>`,
+    parts: [{ key: "fill", label: "Fill", selector: ".fb-fill" }],
+    clicks: [],
+    triggers: TOGGLE_TRIGGERS,
+    css: `.fillbtn {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 30px;
+  border: 1.5px solid {{color}};
+  border-radius: {{radius}}px;
+  background: transparent;
+  color: {{color}};
+  font: 600 15px system-ui, sans-serif;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+.fb-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: {{color}};
+}
+.fb-label {
+  position: relative;
+}
+/* The component gets the "is-open" class while it is hovered or open. */
+.fillbtn.is-open {
+  color: {{text}};
 }`,
   },
 };

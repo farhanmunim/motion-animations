@@ -2,8 +2,8 @@
  * Live preview. Renders the chosen element into the stage and wires up the
  * real motion.dev functions so the preview behaves exactly like the export.
  */
-import { animate, hover, press, inView, scroll, stagger } from "motion";
-import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds } from "./compile.js";
+import { animate, hover, press, inView, scroll, stagger, interpolate } from "motion";
+import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d } from "./compile.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
 let cleanup = [];
@@ -40,20 +40,20 @@ function escapeHtml(s) {
  * Split a string into word or character spans. Spaces stay as plain text so
  * they are not animated and the layout does not shift.
  */
-export function splitMarkup(text, mode) {
+export function splitMarkup(text, mode, mask = false) {
   const raw = String(text || "Hello");
   if (mode === "chars") {
     // Letters are grouped per word so lines never break in the middle of a word.
     return raw
       .split(/\s+/)
       .filter(Boolean)
-      .map((w) => `<span class="motion-word">${[...w].map((ch) => `<span class="motion-item">${escapeHtml(ch)}</span>`).join("")}</span>`)
+      .map((w) => `<span class="motion-word${mask ? " motion-mask" : ""}">${[...w].map((ch) => `<span class="motion-item">${escapeHtml(ch)}</span>`).join("")}</span>`)
       .join(" ");
   }
   return raw
     .split(/\s+/)
     .filter(Boolean)
-    .map((w) => `<span class="motion-item">${escapeHtml(w)}</span>`)
+    .map((w) => (mask ? `<span class="motion-mask"><span class="motion-item">${escapeHtml(w)}</span></span>` : `<span class="motion-item">${escapeHtml(w)}</span>`))
     .join(" ");
 }
 
@@ -66,7 +66,7 @@ export function elementMarkup(el, { forExport = false } = {}) {
       return `<div class="motion-target demo-shape demo-circle"></div>`;
     case "text":
       if (el.split && el.split !== "none") {
-        return `<h1 class="motion-target demo-text demo-split" aria-label="${text}">${splitMarkup(el.text, el.split)}</h1>`;
+        return `<h1 class="motion-target demo-text demo-split" aria-label="${text}">${splitMarkup(el.text, el.split, el.mask)}</h1>`;
       }
       return `<h1 class="motion-target demo-text">${text}</h1>`;
     case "button":
@@ -143,6 +143,8 @@ export function renderPreview(stage, state, setStatus) {
   const trigger = effectiveTrigger(state);
   const scrolly = trigger === "inView" || trigger === "scroll";
   stage.classList.toggle("scrolly", scrolly);
+  // Pointer-following elements bring their own perspective, like the export does.
+  stage.classList.toggle("flat", trigger === "pointer");
 
   const style = component ? `<style>${componentCss(el.type, el)}</style>` : "";
   const inner = `<div class="stage-inner" style="${elementCss(el)}">${style}${elementMarkup(el)}</div>`;
@@ -260,6 +262,101 @@ export function renderPreview(stage, state, setStatus) {
         stage.scrollTo({ top: 0 });
         revert();
       };
+    }
+    case "pointer": {
+      const follow = buildFollow(state)
+        .map((f) => ({ ...f, els: f.selector === null ? [root] : Array.from(root.querySelectorAll(f.selector)) }))
+        .filter((f) => f.els.length);
+      if (!follow.length) {
+        setStatus("Add a property to animate");
+        return () => {};
+      }
+      setStatus("Move your pointer over the element. A short demo plays first");
+      const spring = options(false);
+      const perspective = Number(state.pointer?.perspective) || 900;
+      const is3d = needs3d(state);
+      const scene = state.pointer?.area === "scene";
+      const rest = { x: 0, y: 0, enter: 0 };
+      const mappers = follow.map((f) => ({
+        els: f.els,
+        isRoot: f.selector === null,
+        props: Object.entries(f.props).map(([prop, p]) => ({ prop, axis: p.axis, map: interpolate(p.axis === "enter" ? [0, 1] : [-1, 1], p.range) })),
+      }));
+      const update = (pointer, transition = spring) => {
+        for (const m of mappers) {
+          const values = {};
+          for (const { prop, axis, map } of m.props) values[prop] = map(pointer[axis]);
+          if (is3d && m.isRoot) values.transformPerspective = perspective;
+          m.anim = animate(m.els, values, transition);
+        }
+        activeAnimations = mappers.map((m) => m.anim);
+      };
+      if (is3d) root.style.transformStyle = "preserve-3d";
+      update(rest, { duration: 0 });
+
+      // A short scripted sweep so the effect is visible before you touch anything.
+      let demoFrame = 0;
+      const stopDemo = () => {
+        cancelAnimationFrame(demoFrame);
+        demoFrame = 0;
+      };
+      const runDemo = () => {
+        stopDemo();
+        const start = performance.now();
+        const tick = (now) => {
+          const p = Math.min(1, (now - start) / 2400);
+          const angle = p * Math.PI * 2 - Math.PI / 2;
+          const reach = 0.85 * Math.sin(Math.PI * p);
+          update({ x: Math.cos(angle) * reach, y: Math.sin(angle) * reach, enter: 1 });
+          if (p < 1) demoFrame = requestAnimationFrame(tick);
+          else update(rest);
+        };
+        demoFrame = requestAnimationFrame(tick);
+      };
+
+      // Hit-testing uses the element's untransformed box, so tilting never makes
+      // the edge flicker in and out from under the pointer.
+      const clamp = (v) => Math.max(-1, Math.min(1, v));
+      let inside = false;
+      let frame = 0;
+      const onMove = (event) => {
+        if (event.pointerType === "touch") return;
+        stopDemo();
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          let x;
+          let y;
+          if (scene) {
+            const r = stage.getBoundingClientRect();
+            x = ((event.clientX - r.left) / r.width) * 2 - 1;
+            y = ((event.clientY - r.top) / r.height) * 2 - 1;
+          } else {
+            const box = root.getBoundingClientRect();
+            x = (event.clientX - box.left - box.width / 2) / (root.offsetWidth / 2);
+            y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);
+          }
+          const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;
+          if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });
+          else if (inside) update(rest);
+          inside = over;
+        });
+      };
+      const onLeave = () => {
+        stopDemo();
+        inside = false;
+        update(rest);
+      };
+      document.addEventListener("pointermove", onMove);
+      document.documentElement.addEventListener("pointerleave", onLeave);
+      const startTimer = setTimeout(runDemo, 350);
+      cleanup.push(() => {
+        document.removeEventListener("pointermove", onMove);
+        document.documentElement.removeEventListener("pointerleave", onLeave);
+        cancelAnimationFrame(frame);
+        stopDemo();
+        clearTimeout(startTimer);
+      });
+      return runDemo;
     }
     case "scroll": {
       setStatus("Scroll the preview: the animation follows your scroll position");

@@ -7,7 +7,7 @@
  *   - a complete standalone HTML file for trying it out
  *   - the CSS that makes the exported element look like the preview
  */
-import { Raw, buildKeyframes, buildFromValues, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
+import { Raw, buildKeyframes, buildFromValues, buildFollow, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, needs3d, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
 import { elementMarkup } from "./preview.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
@@ -55,8 +55,9 @@ const SPLIT_HELPER = `/**
  * Splits a heading into <span class="motion-item"> per word or character so
  * each piece can be animated separately. Spaces are left as plain text, and
  * in "chars" mode the letters of a word are grouped so words never break.
+ * With mask = true each piece is clipped, so it can slide up from behind a line.
  */
-function splitText(element, mode = "words") {
+function splitText(element, mode = "words", mask = false) {
   const text = element.textContent;
   element.textContent = "";
   element.setAttribute("aria-label", text);
@@ -71,14 +72,138 @@ function splitText(element, mode = "words") {
       element.append(part);
     } else if (mode === "chars") {
       const word = document.createElement("span");
-      word.className = "motion-word";
+      word.className = mask ? "motion-word motion-mask" : "motion-word";
       for (const ch of part) word.append(item(ch));
       element.append(word);
+    } else if (mask) {
+      const clip = document.createElement("span");
+      clip.className = "motion-mask";
+      clip.append(item(part));
+      element.append(clip);
     } else {
       element.append(item(part));
     }
   }
 }`;
+
+/* --- Follow pointer -------------------------------------------------------- */
+
+/**
+ * The element (or a component's parts) follows the pointer with a spring.
+ * Works for a single element or a component with several parts.
+ */
+function generatePointerVanilla(state, importFrom) {
+  const follow = buildFollow(state);
+  const spring = buildTransition(state, { mode: "code" });
+  const scene = state.pointer?.area === "scene";
+  const perspective = Number(state.pointer?.perspective) || 900;
+  const is3d = needs3d(state);
+
+  const config = {};
+  for (const f of follow) {
+    const props = {};
+    for (const [prop, p] of Object.entries(f.props)) props[prop] = new Raw(`{ ${p.axis}: ${js(p.range)} }`);
+    config[f.selector ?? ":scope"] = props;
+  }
+
+  const body = [];
+  body.push(`const root = document.querySelector(".motion-target");`, "");
+  if (is3d) {
+    body.push(
+      "// 3D: perspective gives depth; preserve-3d lets child layers float above the surface.",
+      `const perspective = ${perspective};`,
+      `root.style.transformStyle = "preserve-3d";`,
+      "",
+    );
+  }
+  body.push(
+    "// How the element catches up with the pointer. Lower stiffness = floatier.",
+    `const spring = ${js(spring)};`,
+    "",
+    "// What the pointer controls. Each property follows one axis between two values:",
+    "//   x      pointer position, left to right",
+    "//   y      pointer position, top to bottom",
+    "//   enter  outside the element to over the element",
+    `const follow = ${js(config)};`,
+    "",
+    "// Turn every range into a function: pointer value in, CSS value out.",
+    "const mappers = Object.entries(follow).map(([selector, props]) => ({",
+    "  selector,",
+    "  props: Object.entries(props).map(([prop, config]) => {",
+    "    const [axis, range] = Object.entries(config)[0];",
+    "    return { prop, axis, map: interpolate(axis === \"enter\" ? [0, 1] : [-1, 1], range) };",
+    "  }),",
+    "}));",
+    "",
+    "const targets = (selector) => (selector === \":scope\" ? [root] : root.querySelectorAll(selector));",
+    "",
+    "function update(pointer, transition = spring) {",
+    "  for (const { selector, props } of mappers) {",
+    "    const values = {};",
+    "    for (const { prop, axis, map } of props) values[prop] = map(pointer[axis]);",
+    is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
+    "    animate(targets(selector), values, transition);",
+    "  }",
+    "}",
+    "",
+    "const rest = { x: 0, y: 0, enter: 0 };",
+    "const clamp = (value) => Math.max(-1, Math.min(1, value));",
+    "",
+    "update(rest, { duration: 0 }); // start at rest",
+    "",
+  );
+  const listeners = [];
+  if (scene) {
+    listeners.push(
+      "// Track the pointer anywhere on the page.",
+      "let frame;",
+      `document.addEventListener("pointermove", (event) => {`,
+      `  if (event.pointerType === "touch") return;`,
+      "  cancelAnimationFrame(frame);",
+      "  frame = requestAnimationFrame(() => {",
+      "    update({",
+      "      x: clamp((event.clientX / innerWidth) * 2 - 1),",
+      "      y: clamp((event.clientY / innerHeight) * 2 - 1),",
+      "      enter: 1,",
+      "    });",
+      "  });",
+      "});",
+      `document.documentElement.addEventListener("pointerleave", () => update(rest));`,
+    );
+  } else {
+    listeners.push(
+      "// Measure against the element's untransformed size, so tilting never makes",
+      "// its edge flicker in and out from under the pointer.",
+      "let inside = false;",
+      "let frame;",
+      `document.addEventListener("pointermove", (event) => {`,
+      `  if (event.pointerType === "touch") return;`,
+      "  cancelAnimationFrame(frame);",
+      "  frame = requestAnimationFrame(() => {",
+      "    const box = root.getBoundingClientRect(); // its centre stays put while it tilts",
+      "    const x = (event.clientX - box.left - box.width / 2) / (root.offsetWidth / 2);",
+      "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);",
+      "    const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;",
+      "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });",
+      "    else if (inside) update(rest);",
+      "    inside = over;",
+      "  });",
+      "});",
+      `document.documentElement.addEventListener("pointerleave", () => {`,
+      "  inside = false;",
+      "  update(rest);",
+      "});",
+    );
+  }
+  // Respect people who ask their system for less motion.
+  body.push(
+    "// Skip the effect for people who ask their system for less motion.",
+    `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`,
+    ...listeners.map((l) => (l ? `  ${l}` : l)),
+    "}",
+  );
+  return [`import { animate, interpolate } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+}
 
 /* --- Components ------------------------------------------------------------ */
 
@@ -90,6 +215,7 @@ function splitText(element, mode = "words") {
 function generateComponentVanilla(state, importFrom) {
   const comp = getComponent(state.element.type);
   const trigger = effectiveTrigger(state);
+  if (trigger === "pointer") return generatePointerVanilla(state, importFrom);
   const plan = buildPlan(state);
   const transition = buildTransition(state, { mode: "code", multi: false });
   const imports = new Set(["animate"]);
@@ -111,9 +237,13 @@ function generateComponentVanilla(state, importFrom) {
   }
   const hasOverrides = Object.keys(overrides).length > 0;
   const autoClose = trigger === "toggle" ? autoCloseSeconds(state) : 0;
+  // querySelectorAll(":scope") finds nothing, so the root part needs its own lookup.
+  const hasScope = ":scope" in closed;
+  const find = hasScope ? "targets(selector)" : "root.querySelectorAll(selector)";
 
   const body = [];
   body.push(`const root = document.querySelector(".motion-target");`, "");
+  if (hasScope) body.push(`const targets = (selector) => (selector === ":scope" ? [root] : root.querySelectorAll(selector));`, "");
   body.push(`const transition = ${js(transition)};`, "");
   body.push(
     "// What each part looks like when open and when closed.",
@@ -140,8 +270,8 @@ function generateComponentVanilla(state, importFrom) {
     "  const values = isOpen ? open : closed;",
     "  for (const selector in values) {",
     hasOverrides
-      ? "    animate(root.querySelectorAll(selector), values[selector], { ...transition, ...overrides[selector] });"
-      : "    animate(root.querySelectorAll(selector), values[selector], transition);",
+      ? `    animate(${find}, values[selector], { ...transition, ...overrides[selector] });`
+      : `    animate(${find}, values[selector], transition);`,
     "  }",
   );
   if (autoClose) {
@@ -151,7 +281,7 @@ function generateComponentVanilla(state, importFrom) {
     "}",
     "",
     "// Start closed, without animating.",
-    "for (const selector in closed) animate(root.querySelectorAll(selector), closed[selector], { duration: 0 });",
+    `for (const selector in closed) animate(${find}, closed[selector], { duration: 0 });`,
     "",
   );
 
@@ -189,6 +319,7 @@ function generateComponentVanilla(state, importFrom) {
 
 export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
   if (isComponent(state.element.type)) return generateComponentVanilla(state, importFrom);
+  if (effectiveTrigger(state) === "pointer") return generatePointerVanilla(state, importFrom);
   const multi = isMulti(state);
   const keyframes = buildKeyframes(state);
   const from = buildFromValues(state);
@@ -202,7 +333,7 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
   const body = [];
 
   if (needsSplit(state)) {
-    body.push(SPLIT_HELPER, "", `splitText(document.querySelector(".motion-target"), ${js(state.element.split)});`, "");
+    body.push(SPLIT_HELPER, "", `splitText(document.querySelector(".motion-target"), ${js(state.element.split)}${state.element.mask ? ", true" : ""});`, "");
   }
 
   body.push(`const keyframes = ${js(keyframes)};`, "");
@@ -315,6 +446,16 @@ export function generateCss(state) {
   display: inline-block;
   white-space: pre;
 }`);
+    if (el.mask) {
+      css.push(`/* The clip: pieces slide up from behind this invisible line. */
+.motion-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.1em 0.04em 0.18em;
+  margin: -0.1em -0.04em -0.18em;
+}`);
+    }
   }
   switch (el.type) {
     case "box":

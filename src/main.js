@@ -111,6 +111,13 @@ schedulePreview(true);
 
 /* --- Top bar actions ----------------------------------------------------- */
 
+// Demo links use href="#": keep them from navigating (and dropping the share hash).
+for (const id of ["#stage", "#t-stage"]) {
+  $(id)?.addEventListener("click", (e) => {
+    if (e.target.closest('a[href="#"]')) e.preventDefault();
+  });
+}
+
 /* --- Modes: Quick (v1) and Timeline (v2) ---------------------------------- */
 
 let timelineCtl = null;
