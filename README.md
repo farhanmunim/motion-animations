@@ -15,6 +15,15 @@ A lightweight web app for visually designing [motion.dev](https://motion.dev) an
 - **Share links.** The whole design is encoded in the URL. Work is also saved locally so a refresh never loses it.
 - **Timeline mode (v2).** Switch to *Timeline* in the top bar to choreograph several elements on one timeline: a hero section, a card grid, a nav bar, or your own HTML. Every element and property gets a row; actions are blocks you drag to change when they start and resize to change how long they take. Scrub the playhead, click an element in the preview to select it, and export the whole sequence as one motion.dev `animate()` call. Triggers: on load, on click (plays backwards on the second click), when scrolled into view, or scrubbed by scroll.
 
+## SEO and accessibility
+
+- Each route has its own title, description, canonical URL and social tags. `/v2` is emitted at build time as `v2.html` (see `vite.config.js` and `src/seo.js`), so crawlers that don't run JavaScript see the right metadata. Unknown URLs return a real 404 (`public/404.html`).
+- Semantic landmarks (`header`, `main`, `aside`, `footer`, `nav`), one `h1`, an ordered heading outline, a skip link, and a `noscript` fallback.
+- Keyboard: every control is reachable, dialogs trap focus, make the page behind them inert and return focus on close.
+- Screen readers: toggle groups use `aria-pressed`, the library is a list of headed sections, status and toast messages are live regions.
+- The app chrome respects `prefers-reduced-motion`. Exported pointer effects do too.
+- Checked with axe-core (WCAG 2.2 AA) in light and dark themes, on desktop and phone widths, in both modes.
+
 ## Run it locally
 
 ```bash

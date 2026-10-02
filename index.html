@@ -7,15 +7,14 @@
     <meta name="theme-color" content="#0e0e13" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#f4f4f8" media="(prefers-color-scheme: light)" />
     <title>Motion Studio – Visual animation builder for motion.dev</title>
-    <meta
-      name="description"
-      content="Design motion.dev animations visually, preview them live, and export copy-paste JavaScript for any HTML page. Free, no sign-up. Presets for entrances, text, lists, scroll effects and UI components."
-    />
+    <meta name="description" content="Design motion.dev animations visually, preview them live and export copy-paste JavaScript for any HTML page. Free, no sign-up." />
     <meta name="author" content="Farhan" />
+    <meta name="application-name" content="Motion Studio" />
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <link rel="canonical" href="https://motion.farhan.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Motion Studio" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="Motion Studio – Visual animation builder for motion.dev" />
     <meta
       property="og:description"
@@ -28,9 +27,9 @@
     <meta property="og:image:alt" content="Motion Studio: visual animation builder for motion.dev" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Motion Studio – Visual animation builder for motion.dev" />
-    <meta name="twitter:description" content="Design motion.dev animations visually and export ready-to-paste JavaScript. Built by Farhan." />
+    <meta name="twitter:description" content="Design motion.dev animations visually and export ready-to-paste JavaScript. Presets, UI components, live preview, no build step required." />
     <meta name="twitter:image" content="https://motion.farhan.app/og.png" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M9 22 L13 10 L17 18 L20 12 L23 22' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -57,7 +56,7 @@
     <script defer src="https://mochi.farhan.app/script.js" data-website-id="8d596468-94e5-45f4-879c-698006fc90dc"></script>
   </head>
   <body>
-    <a class="skip-link" href="#stage">Skip to the preview</a>
+    <a class="skip-link" href="#main">Skip to main content</a>
     <div id="app">
       <header class="topbar">
         <a class="brand" href="/" aria-label="Motion Studio home">
@@ -67,9 +66,9 @@
           <h1 class="brand-name">Motion Studio</h1>
           <span class="brand-sub" title="Motion Studio v1.0.0">v1</span>
         </a>
-        <div class="mode-switch" role="tablist" aria-label="Editor mode">
-          <button type="button" class="mode active" data-mode="quick" role="tab" aria-selected="true">Quick</button>
-          <button type="button" class="mode" data-mode="timeline" role="tab" aria-selected="false">Timeline <span class="mode-tag">v2</span></button>
+        <div class="mode-switch" role="group" aria-label="Editor mode">
+          <button type="button" class="mode active" data-mode="quick" aria-pressed="true">Quick</button>
+          <button type="button" class="mode" data-mode="timeline" aria-pressed="false">Timeline <span class="mode-tag">v2</span></button>
         </div>
         <div class="topbar-actions">
           <button class="btn ghost" id="btn-theme" title="Toggle light / dark theme" aria-label="Toggle theme">
@@ -84,7 +83,7 @@
         </div>
       </header>
 
-      <main class="workspace">
+      <main class="workspace" id="main" tabindex="-1">
         <aside class="panel presets" id="presets-panel" aria-labelledby="library-title">
           <div class="panel-head">
             <h2 id="library-title">Library</h2>
@@ -111,7 +110,7 @@
           </div>
           <div class="stage q-only" id="stage" tabindex="-1"></div>
           <div class="stage t-only" id="t-stage" tabindex="-1"></div>
-          <div class="t-only" id="t-timeline" aria-label="Timeline"></div>
+          <div class="t-only" id="t-timeline" role="region" aria-label="Timeline"></div>
         </section>
 
         <aside class="panel inspector" id="inspector" aria-labelledby="inspector-title">
@@ -130,13 +129,13 @@
       </main>
 
       <footer class="app-footer">
-        <a href="https://motion.dev/docs" target="_blank" rel="noopener">motion.dev docs</a>
+        <a href="https://motion.dev/docs" target="_blank" rel="noopener">motion.dev docs<span class="visually-hidden"> (opens in a new tab)</span></a>
         <span class="footer-sep" aria-hidden="true"></span>
         <button type="button" class="footer-link" id="btn-shortcuts">Shortcuts</button>
         <span class="footer-spacer"></span>
         <span class="footer-meta">Saved locally, nothing uploaded</span>
         <span class="footer-sep" aria-hidden="true"></span>
-        <span>Built by <a href="https://farhan.app" target="_blank" rel="noopener">Farhan</a></span>
+        <span>Built by <a href="https://farhan.app" target="_blank" rel="noopener">Farhan<span class="visually-hidden"> (opens in a new tab)</span></a></span>
       </footer>
 
       <nav class="mobile-nav" aria-label="Sections">
@@ -187,6 +186,16 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <noscript>
+      <div class="noscript">
+        <h2>Motion Studio needs JavaScript</h2>
+        <p>
+          Motion Studio is a visual builder for <a href="https://motion.dev">motion.dev</a> animations. Pick a preset or UI component, tweak it in the
+          inspector, watch it play live and copy the vanilla JavaScript into any HTML page. Enable JavaScript to use it.
+        </p>
+      </div>
+    </noscript>
 
     <script type="module" src="/src/main.js"></script>
   </body>

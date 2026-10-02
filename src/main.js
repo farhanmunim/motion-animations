@@ -4,6 +4,7 @@ import { renderLibrary, renderDesign, renderCode, copy, isDirty } from "./ui.js"
 import { generateVanilla } from "./codegen.js";
 import { merge } from "./state.js";
 import { mountTimeline } from "./v2/index.js";
+import { META_TARGETS, routeValues } from "./seo.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -133,12 +134,23 @@ const quickCtl = {
 };
 const active = () => (document.body.dataset.mode === "timeline" ? timelineCtl : quickCtl);
 
+/** Keep title, description, canonical and social tags in step with the route. */
+function syncHead(mode) {
+  const v = routeValues(mode);
+  for (const [selector, attr, key] of META_TARGETS) {
+    const el = document.head.querySelector(selector);
+    if (!el) continue;
+    if (attr) el.setAttribute(attr, v[key]);
+    else el.textContent = v[key];
+  }
+}
+
 function setMode(mode) {
   document.body.dataset.mode = mode;
   for (const b of document.querySelectorAll(".mode-switch .mode")) {
     const on = b.dataset.mode === mode;
     b.classList.toggle("active", on);
-    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.setAttribute("aria-pressed", on ? "true" : "false");
   }
   if (mode === "timeline" && !timelineCtl) {
     timelineCtl = mountTimeline({
@@ -160,7 +172,7 @@ function setMode(mode) {
   // Timeline mode lives at /v2; Quick mode at /.
   const path = mode === "timeline" ? "/v2" : "/";
   if (location.pathname.replace(/\/$/, "") !== path.replace(/\/$/, "")) history.replaceState(null, "", path);
-  document.title = mode === "timeline" ? "Motion Studio – Timeline (v2): choreograph elements on one timeline" : "Motion Studio – Visual animation builder for motion.dev";
+  syncHead(mode);
   try {
     localStorage.setItem("motion-studio:mode", mode);
   } catch {
@@ -182,17 +194,36 @@ $("#btn-share").addEventListener("click", () => {
 /** Minimal accessible dialog: focus moves in on open and back out on close. */
 function dialog(backdrop, openBtn, closeBtn, onOpen) {
   let returnTo = null;
+  const app = $("#app");
+  const focusables = () =>
+    [...backdrop.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null);
   const open = () => {
     onOpen?.();
     returnTo = document.activeElement;
     backdrop.classList.remove("hidden");
+    app.inert = true; // the page behind a modal is unreachable, for keyboard and screen readers
     closeBtn.focus();
   };
   const close = () => {
     if (backdrop.classList.contains("hidden")) return;
     backdrop.classList.add("hidden");
+    app.inert = false;
     returnTo?.focus?.();
   };
+  backdrop.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const items = focusables();
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
   openBtn.addEventListener("click", open);
   closeBtn.addEventListener("click", close);
   backdrop.addEventListener("click", (e) => e.target === backdrop && close());

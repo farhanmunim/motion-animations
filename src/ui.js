@@ -251,7 +251,7 @@ function remember() {
 export function renderLibrary(container, { onEdit, onCopy, activeId, dirty = false }) {
   container.innerHTML = "";
   const search = h("input", { type: "search", class: "search", placeholder: "Search…", "aria-label": "Search presets" });
-  const chips = h("div", { class: "chips", role: "tablist" });
+  const chips = h("div", { class: "chips", role: "group", "aria-label": "Filter by category" });
   const list = h("div", { class: "library-groups" });
   container.append(search, chips, list);
 
@@ -265,8 +265,7 @@ export function renderLibrary(container, { onEdit, onCopy, activeId, dirty = fal
           {
             type: "button",
             class: `chip ${libraryFilter === c.id ? "active" : ""}`,
-            role: "tab",
-            "aria-selected": libraryFilter === c.id ? "true" : "false",
+            "aria-pressed": libraryFilter === c.id ? "true" : "false",
             onClick: () => {
               libraryFilter = c.id;
               remember();
@@ -307,8 +306,12 @@ export function renderLibrary(container, { onEdit, onCopy, activeId, dirty = fal
         h("span", {}, cat.label),
         h("span", { class: "group-count" }, items.length),
       );
-      const group = h("div", { class: "library-group" }, head);
-      if (!isCollapsed) for (const p of items) group.append(presetCard(p, { onEdit, onCopy, active: p.id === activeId, dirty }));
+      const group = h("section", { class: "library-group" }, h("h3", { class: "group-title" }, head));
+      if (!isCollapsed) {
+        const ul = h("ul", { class: "group-items", "aria-label": cat.label });
+        for (const p of items) ul.append(h("li", {}, presetCard(p, { onEdit, onCopy, active: p.id === activeId, dirty })));
+        group.append(ul);
+      }
       list.append(group);
     }
     if (!list.children.length) list.append(h("p", { class: "hint pad" }, "Nothing matches. Try another word."));
@@ -342,7 +345,7 @@ function presetCard(preset, { onEdit, onCopy, active, dirty }) {
         ? null
         : h(
             "button",
-            { class: "btn tiny icon-btn primary", type: "button", title: "Edit", "aria-label": `Edit ${preset.name}`, onClick: (e) => { e.stopPropagation(); onEdit(preset); } },
+            { class: "btn tiny icon-btn primary", type: "button", title: "Edit", "aria-hidden": "true", tabindex: "-1", onClick: (e) => { e.stopPropagation(); onEdit(preset); } },
             h("span", { html: ICON_EDIT }),
           ),
     ),
@@ -1094,7 +1097,7 @@ export function renderCode(container, state, { onToast, full = false, code: preb
   const code = prebuilt || generateAll(state);
   container.innerHTML = "";
 
-  const tabs = h("div", { class: "code-tabs", role: "tablist", "aria-label": "Code format" });
+  const tabs = h("div", { class: "code-tabs", role: "group", "aria-label": "Code format" });
   const tabHint = h("p", { class: "hint" });
   const pre = h("pre", { class: "code", tabindex: 0, "aria-label": "Generated code" });
   const codeEl = h("code", {});
@@ -1104,7 +1107,7 @@ export function renderCode(container, state, { onToast, full = false, code: preb
     activeCodeTab = id;
     for (const b of tabs.children) {
       b.classList.toggle("active", b.dataset.id === id);
-      b.setAttribute("aria-selected", b.dataset.id === id ? "true" : "false");
+      b.setAttribute("aria-pressed", b.dataset.id === id ? "true" : "false");
     }
     const t = CODE_TABS.find((x) => x.id === id);
     codeEl.textContent = code[id];
@@ -1112,7 +1115,7 @@ export function renderCode(container, state, { onToast, full = false, code: preb
     pre.dataset.lang = t.lang;
   };
   for (const t of CODE_TABS) {
-    tabs.append(h("button", { class: "code-tab", type: "button", "data-id": t.id, role: "tab", "aria-selected": "false", onClick: () => setTab(t.id) }, t.label));
+    tabs.append(h("button", { class: "code-tab", type: "button", "data-id": t.id, "aria-pressed": "false", onClick: () => setTab(t.id) }, t.label));
   }
 
   const copyBtn = h(
@@ -1141,7 +1144,7 @@ export function renderCode(container, state, { onToast, full = false, code: preb
     container.append(
       h("div", { class: "subhead" }, "Element markup"),
       h("p", { class: "hint" }, "Paste this where the element should live, or add the class names to your own HTML."),
-      h("pre", { class: "code small" }, h("code", {}, code.markup)),
+      h("pre", { class: "code small", tabindex: 0, "aria-label": "Component HTML" }, h("code", {}, code.markup)),
       h("div", { class: "subhead" }, "Dependencies"),
       install,
     );

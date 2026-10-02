@@ -17,7 +17,7 @@ export const SCENES = {
     ],
     markup: `<section class="sc-hero">
   <span class="sc-eyebrow" data-el="eyebrow">New · Timeline mode</span>
-  <h1 class="sc-heading" data-el="heading">Design motion visually</h1>
+  <h2 class="sc-heading" data-el="heading">Design motion visually</h2>
   <p class="sc-text" data-el="text">Sequence every element on one timeline, then export plain JavaScript.</p>
   <div class="sc-actions">
     <button class="sc-btn primary" data-el="button">Get started</button>
