@@ -9,6 +9,7 @@ A lightweight web app for visually designing [motion.dev](https://motion.dev) an
 - **Animate anything.** A box, circle, heading, button, card, a list of items, a grid of tiles, or your own HTML. Headings can be split into words or letters so each piece animates on its own.
 - **Effects and text effects.** Infinite slider (marquee), border trail, glow card, animated number (counts up), shimmer text, rotating words, text roll on hover, spinning text ring, text scramble and a letter shimmer wave. All plain HTML, CSS and motion.dev. Loops that never stop are skipped for visitors who prefer reduced motion.
 - **More components.** Dock with magnifying icons, image comparison slider, morphing popover and an expandable toolbar. The dock uses a *closeness* axis: each icon reacts to how near the pointer is to its own centre.
+- **Inspired by the motion.dev examples.** Copy button with a drawn checkmark, hold to confirm, card stack that fans out, radial menu, command palette, ripple loader, path drawing, cursor follower, blinds and iris page transitions, fill text, scroll image reveal, scroll zoom hero, bouncy hover and a scramble that settles from the middle outwards.
 - **Follow pointer.** Cards that tilt in 3D toward wherever the pointer is, continuously, not just four corners. Each property follows the pointer's horizontal position, vertical position, or whether it is over the element, mapped between two values and smoothed with a spring. Use it for tilt, spotlight glow, parallax and magnetic buttons. The area can be the element or the whole stage. Exports ignore touch and skip the effect for visitors who prefer reduced motion. The preview plays a short demo sweep first.
 - **Masked text reveals.** Turn on *Mask each piece* to make words or letters rise out of a clipped line, as on award-winning sites.
 - **Every motion.dev knob, simplified.** From/to keyframes (plus in-between steps), timed easing or physics springs, delay, repeat, stagger, and triggers: on load, on click (toggle), on hover, on press, follow pointer, when scrolled into view, or linked to scroll position.
@@ -16,6 +17,17 @@ A lightweight web app for visually designing [motion.dev](https://motion.dev) an
 - **Export** as a drop-in `<script type="module">` (loads motion from a CDN, no install), a JS module for bundler projects, a complete HTML page, and the matching CSS.
 - **Share links.** The whole design is encoded in the URL. Work is also saved locally so a refresh never loses it.
 - **Timeline mode (v2).** Switch to *Timeline* in the top bar to choreograph several elements on one timeline: a hero section, a card grid, a nav bar, or your own HTML. Every element and property gets a row; actions are blocks you drag to change when they start and resize to change how long they take. Scrub the playhead, click an element in the preview to select it, and export the whole sequence as one motion.dev `animate()` call. Triggers: on load, on click (plays backwards on the second click), when scrolled into view, or scrubbed by scroll.
+
+## Animation quality bar
+
+Every library entry is held to the guidance in motion.dev's [performance guide](https://motion.dev/docs/performance) and the grading used by MotionScore:
+
+- **Compositor first.** Presets animate `transform`, `opacity`, `filter` and `clip-path` wherever possible. Layout-triggering properties (such as `letter-spacing`) were replaced; the few that remain (accordion height, popover and toolbar width) animate small, isolated elements.
+- **No heavy blur.** Blur stays at 10px or less, and there is no permanent `will-change`.
+- **Loops only run while visible.** Exported infinite loops start when they scroll into view and stop when they leave, instead of working off-screen.
+- **Reads before writes.** The proximity code (dock) measures every item first and animates afterwards, so the browser never re-layouts mid-frame.
+- **Reduced motion.** Entrances and toggles jump straight to their end state, loops and pointer effects stay still.
+- **Premium easing.** Named curves such as *smooth* and *expo out*, and springs tuned per effect, instead of generic ease-in-out.
 
 ## SEO and accessibility
 

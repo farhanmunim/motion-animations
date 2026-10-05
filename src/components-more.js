@@ -39,7 +39,7 @@ const ICONS = {
   image: `<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/>`,
   more: `<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>`,
 };
-const icon = (name, size = 20) =>
+export const icon = (name, size = 20) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 
 const dockItem = (label, name, c1, c2) =>
@@ -481,8 +481,7 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
 .bt-spin {
   position: absolute;
   inset: -100%;
-  background: conic-gradient(from 0deg, transparent 0deg 240deg, {{color}} 320deg, #fff 360deg);
-  will-change: transform;
+  background: conic-gradient(from 0deg, transparent 0deg 190deg, {{color}} 290deg, #fff 352deg, transparent 360deg);
 }`,
   },
 
@@ -521,13 +520,12 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
 .gl-halo {
   inset: -6px;
   border-radius: calc({{radius}}px + 6px);
-  filter: blur(14px);
+  filter: blur(10px);
   opacity: 0.7;
 }
 .gl-spin {
   position: absolute;
   inset: -100%;
-  will-change: transform;
   background: conic-gradient({{color}}, #ec4899, #f59e0b, #22d3ee, {{color}});
 }
 .gl-body {

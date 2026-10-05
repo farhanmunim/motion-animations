@@ -3,7 +3,7 @@
  * real motion.dev functions so the preview behaves exactly like the export.
  */
 import { animate, hover, press, inView, scroll, stagger, interpolate } from "motion";
-import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleFrame } from "./compile.js";
+import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleFrame, scrambleRank } from "./compile.js";
 import { resolveEase } from "./props.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
@@ -295,11 +295,14 @@ export function renderPreview(stage, state, setStatus) {
       const hold = !!state.pointer?.hold;
       // Magnified items stick out past the element's box, so count a margin around it as "over".
       const hitPad = follow.some((f) => Object.values(f.props).some((p) => p.axis === "near")) ? radius / 2 : 0;
-      const rest = { x: 0, y: 0, enter: 0, px: -Infinity };
+      const rest = { x: 0, y: 0, enter: 0, px: -Infinity, cursorX: 0, cursorY: 0 };
+      // "cursorX / cursorY": the pointer's distance from the middle in px, times a strength.
+      const mapFor = (axis, range) =>
+        axis === "cursorX" || axis === "cursorY" ? (value) => value * Number(range[1]) : interpolate(axis === "x" || axis === "y" ? [-1, 1] : [0, 1], range);
       const mappers = follow.map((f) => ({
         els: f.els,
         isRoot: f.selector === null,
-        props: Object.entries(f.props).map(([prop, p]) => ({ prop, axis: p.axis, map: interpolate(p.axis === "x" || p.axis === "y" ? [-1, 1] : [0, 1], p.range) })),
+        props: Object.entries(f.props).map(([prop, p]) => ({ prop, axis: p.axis, map: mapFor(p.axis, p.range) })),
       }));
       // "near": how close the pointer is to an item's own centre, 1 on top of it, 0 at `radius` px away.
       const nearOf = (target, px) => {
@@ -307,20 +310,19 @@ export function renderPreview(stage, state, setStatus) {
         return Math.max(0, 1 - Math.abs(px - (box.left + box.width / 2)) / radius);
       };
       const update = (pointer, transition = spring) => {
+        // Read every position first, then write: mixing the two forces a re-layout each time.
+        const levels = mappers.map((m) => (m.props.some((p) => p.axis === "near") ? m.els.map((target) => nearOf(target, pointer.px)) : []));
         const running = [];
-        for (const m of mappers) {
+        mappers.forEach((m, i) => {
           const values = {};
           for (const { prop, axis, map } of m.props) if (axis !== "near") values[prop] = map(pointer[axis]);
           if (is3d && m.isRoot) values.transformPerspective = perspective;
           if (Object.keys(values).length) running.push(animate(m.els, values, transition));
           const near = m.props.filter((p) => p.axis === "near");
-          if (near.length) {
-            for (const target of m.els) {
-              const level = nearOf(target, pointer.px);
-              running.push(animate(target, Object.fromEntries(near.map(({ prop, map }) => [prop, map(level)])), transition));
-            }
-          }
-        }
+          m.els.forEach((target, n) => {
+            if (near.length) running.push(animate(target, Object.fromEntries(near.map(({ prop, map }) => [prop, map(levels[i][n])])), transition));
+          });
+        });
         activeAnimations = running;
       };
       if (is3d) root.style.transformStyle = "preserve-3d";
@@ -342,7 +344,9 @@ export function renderPreview(stage, state, setStatus) {
           const x = Math.cos(angle) * reach;
           const box = (scene ? stage : root).getBoundingClientRect();
           const width = scene ? box.width : root.offsetWidth;
-          update({ x, y: Math.sin(angle) * reach, enter: 1, px: box.left + ((x + 1) / 2) * width });
+          const height = scene ? box.height : root.offsetHeight;
+          const y = Math.sin(angle) * reach;
+          update({ x, y, enter: 1, px: box.left + ((x + 1) / 2) * width, cursorX: (x * width) / 2, cursorY: (y * height) / 2 });
           if (p < 1) demoFrame = requestAnimationFrame(tick);
           else update(rest);
         };
@@ -361,17 +365,23 @@ export function renderPreview(stage, state, setStatus) {
         frame = requestAnimationFrame(() => {
           let x;
           let y;
+          let cursorX;
+          let cursorY;
           if (scene) {
             const r = stage.getBoundingClientRect();
             x = ((event.clientX - r.left) / r.width) * 2 - 1;
             y = ((event.clientY - r.top) / r.height) * 2 - 1;
+            cursorX = event.clientX - (r.left + r.width / 2);
+            cursorY = event.clientY - (r.top + r.height / 2);
           } else {
             const box = root.getBoundingClientRect();
             x = (event.clientX - box.left - box.width / 2) / (root.offsetWidth / 2);
             y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2 + hitPad);
+            cursorX = event.clientX - (box.left + box.width / 2);
+            cursorY = event.clientY - (box.top + box.height / 2);
           }
           const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;
-          if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });
+          if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX, cursorX, cursorY });
           else if (inside && !hold) update(rest);
           inside = over;
         });
@@ -424,13 +434,14 @@ function renderScramble(stage, root, state, setStatus) {
   const { cells, pools } = lockLetters(root, finalText, chars);
   const run = () => {
     animation?.stop();
+    const rank = scrambleRank(cells.length, state.scramble?.order);
     animation = animate(0, 1, {
       duration: Math.max(0.05, Number(t.duration) || 1),
       delay: Number(t.delay) || 0,
       ease: resolveEase(t),
       onUpdate: (progress) => {
-        const frame = [...scrambleFrame(letters, progress, chars)];
-        cells.forEach((cell, i) => (cell.textContent = frame[i] === letters[i] ? frame[i] : pools[i][Math.floor(Math.random() * pools[i].length)]));
+        const settled = Math.floor(progress * cells.length);
+        cells.forEach((cell, i) => (cell.textContent = rank[i] < settled ? letters[i] : pools[i][Math.floor(Math.random() * pools[i].length)]));
       },
     });
     activeAnimations = [animation];

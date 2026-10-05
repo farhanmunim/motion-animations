@@ -80,6 +80,16 @@ export const SCRAMBLE_SETS = {
 };
 export const scrambleChars = (state) => SCRAMBLE_SETS[state.scramble?.chars] || SCRAMBLE_SETS.letters;
 
+/** The position at which each letter settles: 0 settles first. */
+export function scrambleRank(count, order) {
+  const indexes = Array.from({ length: count }, (_, i) => i);
+  if (order === "center") indexes.sort((a, b) => Math.abs(a - (count - 1) / 2) - Math.abs(b - (count - 1) / 2) || a - b);
+  if (order === "random") indexes.sort(() => Math.random() - 0.5);
+  const rank = [];
+  indexes.forEach((letter, position) => (rank[letter] = position));
+  return rank;
+}
+
 /** One frame of the effect: letters settle left to right, the rest keep shuffling. */
 export function scrambleFrame(text, progress, chars) {
   const settled = Math.floor(progress * text.length);

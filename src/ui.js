@@ -654,6 +654,16 @@ function renderScrambleSection(state, set) {
       ],
       onChange: (v) => set({ scramble: { chars: v } }),
     }),
+    selectField({
+      label: "Settles",
+      value: state.scramble?.order || "start",
+      options: [
+        { value: "start", label: "Left to right" },
+        { value: "center", label: "From the middle outwards" },
+        { value: "random", label: "In random order" },
+      ],
+      onChange: (v) => set({ scramble: { order: v } }),
+    }),
   );
 }
 
@@ -710,12 +720,16 @@ const POINTER_AXES = [
   { value: "y", label: "Pointer Y (top to bottom)" },
   { value: "enter", label: "Pointer over the element" },
   { value: "near", label: "Pointer closeness (per item, along X)" },
+  { value: "cursorX", label: "Cursor X (follows it, in px)" },
+  { value: "cursorY", label: "Cursor Y (follows it, in px)" },
 ];
 const POINTER_LABELS = {
   x: ["At the left edge", "At the right edge"],
   y: ["At the top edge", "At the bottom edge"],
   enter: ["Pointer outside", "Pointer over it"],
   near: ["Pointer far away", "Pointer right on it"],
+  cursorX: ["At the centre", "Follow strength (×)"],
+  cursorY: ["At the centre", "Follow strength (×)"],
 };
 const POINTER_RANGES = {
   rotateX: [10, -10],

@@ -17,6 +17,7 @@ const TOGGLE_TRIGGERS = ["toggle", "hover", "press", "load", "inView"];
 const POINTER_TRIGGERS = ["pointer", "hover", "toggle", "press", "load", "inView"];
 
 import { EXTRA_COMPONENTS } from "./components-more.js";
+import { KIT_COMPONENTS } from "./components-kit.js";
 
 const BASE_COMPONENTS = {
   hamburger: {
@@ -139,7 +140,7 @@ const BASE_COMPONENTS = {
     markup: `<div class="motion-target modal-demo">
   <button class="modal-open" aria-expanded="false">Open dialog</button>
   <div class="modal-backdrop"></div>
-  <div class="modal-dialog" role="dialog" aria-modal="true">
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="Delete project">
     <h3>Delete project?</h3>
     <p>This can't be undone. All files in the project will be removed.</p>
     <div class="modal-actions">
@@ -971,7 +972,7 @@ const BASE_COMPONENTS = {
   },
 };
 
-export const COMPONENTS = { ...BASE_COMPONENTS, ...EXTRA_COMPONENTS };
+export const COMPONENTS = { ...BASE_COMPONENTS, ...EXTRA_COMPONENTS, ...KIT_COMPONENTS };
 
 export function isComponent(type) {
   return Object.prototype.hasOwnProperty.call(COMPONENTS, type);

@@ -100,6 +100,7 @@ function generatePointerVanilla(state, importFrom) {
   const is3d = needs3d(state);
 
   const hasNear = follow.some((f) => Object.values(f.props).some((p) => p.axis === "near"));
+  const hasCursor = follow.some((f) => Object.values(f.props).some((p) => String(p.axis).startsWith("cursor")));
   const radius = Number(state.pointer?.radius) || 120;
   const hold = !!state.pointer?.hold;
 
@@ -129,6 +130,7 @@ function generatePointerVanilla(state, importFrom) {
     "//   y      pointer position, top to bottom",
     "//   enter  outside the element to over the element",
     ...(hasNear ? ["//   near   far from the pointer to right under it, measured per item"] : []),
+    ...(hasCursor ? ["//   cursorX / cursorY  the pointer's distance from the middle in px, times a strength"] : []),
     `const follow = ${js(config)};`,
     "",
     "// Turn every range into a function: pointer value in, CSS value out.",
@@ -136,7 +138,10 @@ function generatePointerVanilla(state, importFrom) {
     "  selector,",
     "  props: Object.entries(props).map(([prop, config]) => {",
     "    const [axis, range] = Object.entries(config)[0];",
-    "    return { prop, axis, map: interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range) };",
+    hasCursor
+      ? "    const map = axis.startsWith(\"cursor\") ? (value) => value * range[1] : interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range);"
+      : "",
+    hasCursor ? "    return { prop, axis, map };" : "    return { prop, axis, map: interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range) };",
     "  }),",
     "}));",
     "",
@@ -153,7 +158,11 @@ function generatePointerVanilla(state, importFrom) {
           "}",
           "",
           "function update(pointer, transition = spring) {",
-          "  for (const { selector, props } of mappers) {",
+          "  // Read every position first, then write: mixing the two forces the browser to re-layout again and again.",
+          "  const items = mappers.map(({ selector, props }) => (props.some((prop) => prop.axis === \"near\") ? [...targets(selector)] : []));",
+          "  const levels = items.map((list) => list.map((item) => near(item, pointer.px)));",
+          "",
+          "  mappers.forEach(({ selector, props }, i) => {",
           "    const values = {};",
           "    for (const { prop, axis, map } of props) if (axis !== \"near\") values[prop] = map(pointer[axis]);",
           is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
@@ -161,12 +170,10 @@ function generatePointerVanilla(state, importFrom) {
           "",
           "    // Items that react to proximity each get their own value.",
           "    const nearProps = props.filter((prop) => prop.axis === \"near\");",
-          "    if (!nearProps.length) continue;",
-          "    for (const item of targets(selector)) {",
-          "      const level = near(item, pointer.px);",
-          "      animate(item, Object.fromEntries(nearProps.map(({ prop, map }) => [prop, map(level)])), transition);",
-          "    }",
-          "  }",
+          "    items[i].forEach((item, n) => {",
+          "      animate(item, Object.fromEntries(nearProps.map(({ prop, map }) => [prop, map(levels[i][n])])), transition);",
+          "    });",
+          "  });",
           "}",
         ]
       : [
@@ -180,7 +187,11 @@ function generatePointerVanilla(state, importFrom) {
           "}",
         ]),
     "",
-    hasNear ? "const rest = { x: 0, y: 0, enter: 0, px: -Infinity }; // px: pointer position in the viewport" : "const rest = { x: 0, y: 0, enter: 0 };",
+    hasNear
+      ? "const rest = { x: 0, y: 0, enter: 0, px: -Infinity }; // px: pointer position in the viewport"
+      : hasCursor
+      ? "const rest = { x: 0, y: 0, enter: 0, cursorX: 0, cursorY: 0 };"
+      : "const rest = { x: 0, y: 0, enter: 0 };",
     "const clamp = (value) => Math.max(-1, Math.min(1, value));",
     "",
     "update(rest, { duration: 0 }); // start at rest",
@@ -200,6 +211,7 @@ function generatePointerVanilla(state, importFrom) {
       "      y: clamp((event.clientY / innerHeight) * 2 - 1),",
       "      enter: 1,",
       ...(hasNear ? ["      px: event.clientX,"] : []),
+      ...(hasCursor ? ["      cursorX: event.clientX - innerWidth / 2,", "      cursorY: event.clientY - innerHeight / 2,"] : []),
       "    });",
       "  });",
       "});",
@@ -224,7 +236,15 @@ function generatePointerVanilla(state, importFrom) {
         ? "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2 + radius / 2);"
         : "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);",
       "    const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;",
-      hasNear ? "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });" : "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });",
+      hasCursor
+        ? "    const cursorX = event.clientX - box.left - box.width / 2;"
+        : "",
+      hasCursor ? "    const cursorY = event.clientY - box.top - box.height / 2;" : "",
+      hasCursor
+        ? "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1, cursorX, cursorY });"
+        : hasNear
+        ? "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });"
+        : "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });",
       hold ? "    // (it stays where it is when the pointer leaves)" : "    else if (inside) update(rest);",
       "    inside = over;",
       "  });",
@@ -277,6 +297,10 @@ function generateComponentVanilla(state, importFrom) {
   }
   const hasOverrides = Object.keys(overrides).length > 0;
   const autoClose = trigger === "toggle" ? autoCloseSeconds(state) : 0;
+  // A loop that never stops is only worth running while it is on screen.
+  const loops = transition.repeat === Infinity && trigger === "load";
+  // Everything else jumps straight to its end state for people who ask for less motion.
+  const reduce = !loops && trigger !== "scroll";
   // querySelectorAll(":scope") finds nothing, so the root part needs its own lookup.
   const hasScope = ":scope" in closed;
   const find = hasScope ? "targets(selector)" : "root.querySelectorAll(selector)";
@@ -284,7 +308,16 @@ function generateComponentVanilla(state, importFrom) {
   const body = [];
   body.push(`const root = document.querySelector(".motion-target");`, "");
   if (hasScope) body.push(`const targets = (selector) => (selector === ":scope" ? [root] : root.querySelectorAll(selector));`, "");
-  body.push(`const transition = ${js(transition)};`, "");
+  if (reduce) {
+    body.push(
+      `// Honour "reduce motion": jump straight to the end state instead of animating.`,
+      `const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;`,
+      `const transition = reduceMotion ? { duration: 0 } : ${js(transition)};`,
+      "",
+    );
+  } else {
+    body.push(`const transition = ${js(transition)};`, "");
+  }
   body.push(
     "// What each part looks like when open and when closed.",
     "// Selectors are relative to the root (\":scope\" is the root itself).",
@@ -294,9 +327,10 @@ function generateComponentVanilla(state, importFrom) {
     "",
   );
   if (hasOverrides) {
-    body.push("// Extra options for some parts: stagger between items, keyframe timing.", `const overrides = ${js(overrides)};`, "");
+    body.push("// Extra options for some parts: stagger between items, keyframe timing.", `const overrides = ${reduce ? "reduceMotion ? {} : " : ""}${js(overrides)};`, "");
   }
   body.push("let isOpen = false;");
+  if (loops) body.push("const running = []; // the loop's animations, so they can be stopped when it leaves the screen");
   if (autoClose) body.push("let closeTimer;");
   body.push(
     "",
@@ -310,8 +344,8 @@ function generateComponentVanilla(state, importFrom) {
     "  const values = isOpen ? open : closed;",
     "  for (const selector in values) {",
     hasOverrides
-      ? `    animate(${find}, values[selector], { ...transition, ...overrides[selector] });`
-      : `    animate(${find}, values[selector], transition);`,
+      ? `    ${loops ? "running.push(" : ""}animate(${find}, values[selector], { ...transition, ...overrides[selector] })${loops ? ")" : ""};`
+      : `    ${loops ? "running.push(" : ""}animate(${find}, values[selector], transition)${loops ? ")" : ""};`,
     "  }",
   );
   if (autoClose) {
@@ -349,8 +383,17 @@ function generateComponentVanilla(state, importFrom) {
       break;
     case "load":
     default:
-      if (transition.repeat === Infinity) {
-        body.push("// A loop that never stops: skip it for people who ask their system for less motion.", `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setOpen(true);`);
+      if (loops) {
+        imports.add("inView");
+        body.push(
+          "// A loop that never stops: skip it for people who ask for less motion, and run it only while it is on screen.",
+          `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`,
+          "  inView(root, () => {",
+          "    setOpen(true);",
+          "    return () => running.splice(0).forEach((animation) => animation.stop());",
+          "  });",
+          "}",
+        );
       } else {
         body.push("// Open as soon as this script runs.", "setOpen(true);");
       }
@@ -364,6 +407,7 @@ function generateComponentVanilla(state, importFrom) {
 /** Text scramble: letters shuffle, then settle left to right into the real text. */
 function generateScrambleVanilla(state, importFrom) {
   const trigger = effectiveTrigger(state);
+  const order = state.scramble?.order || "start";
   const transition = buildTransition({ ...state, transition: { ...state.transition, type: "tween", infinite: false, repeat: 0 } }, { mode: "code", multi: false });
   const imports = new Set(["animate"]);
   const body = [
@@ -423,14 +467,30 @@ function generateScrambleVanilla(state, importFrom) {
     "",
     "const cells = lockLetters(); // built once, so nothing is swapped out from under the pointer",
     "",
-    "// Letters settle left to right; the ones still waiting keep shuffling.",
+    ...(order === "start"
+      ? []
+      : [
+          `// The order the letters settle in: ${order === "center" ? "from the middle outwards" : "at random"}.`,
+          "function settleOrder(count) {",
+          "  const indexes = Array.from({ length: count }, (_, i) => i);",
+          order === "center"
+            ? "  indexes.sort((a, b) => Math.abs(a - (count - 1) / 2) - Math.abs(b - (count - 1) / 2) || a - b);"
+            : "  indexes.sort(() => Math.random() - 0.5);",
+          "  const rank = [];",
+          "  indexes.forEach((letter, position) => (rank[letter] = position));",
+          "  return rank;",
+          "}",
+          "",
+        ]),
+    `// Letters settle ${order === "start" ? "left to right" : "one by one"}; the ones still waiting keep shuffling.`,
     "function scramble() {",
+    ...(order === "start" ? [] : ["  const rank = settleOrder(cells.length);"]),
     "  animate(0, 1, {",
     "    ...transition,",
     "    onUpdate(progress) {",
     "      const settled = Math.floor(progress * cells.length);",
     "      cells.forEach((cell, i) => {",
-    "        cell.textContent = i < settled ? finalChars[i] : pools[i][Math.floor(Math.random() * pools[i].length)];",
+    `        cell.textContent = ${order === "start" ? "i" : "rank[i]"} < settled ? finalChars[i] : pools[i][Math.floor(Math.random() * pools[i].length)];`,
     "      });",
     "    },",
     "  });",
@@ -478,7 +538,18 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
   }
 
   body.push(`const keyframes = ${js(keyframes)};`, "");
-  body.push(`const transition = ${js(transition)};`, "");
+  const loops = transition.repeat === Infinity && state.trigger === "load";
+  if (!loops && state.trigger !== "scroll") {
+    // Everything else jumps straight to its end state for people who ask for less motion.
+    body.push(
+      `// Honour "reduce motion": jump straight to the end state instead of animating.`,
+      `const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;`,
+      `const transition = reduceMotion ? { duration: 0 } : ${js(transition)};`,
+      "",
+    );
+  } else {
+    body.push(`const transition = ${js(transition)};`, "");
+  }
 
   const target = multi ? `element.querySelectorAll(${js(".motion-item")})` : "element";
 
@@ -551,8 +622,17 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
     }
     case "load":
     default:
-      if (transition.repeat === Infinity) {
-        body.push("// A loop that never stops: skip it for people who ask their system for less motion.", `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`, `  animate(${js(selector)}, keyframes, transition);`, "}");
+      if (loops) {
+        imports.add("inView");
+        body.push(
+          "// A loop that never stops: skip it for people who ask for less motion, and run it only while it is on screen.",
+          `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`,
+          `  inView(${js(wrapper)}, (element) => {`,
+          `    const animation = animate(${target}, keyframes, transition);`,
+          "    return () => animation.stop();",
+          "  });",
+          "}",
+        );
       } else {
         body.push("// Plays as soon as this script runs.", `animate(${js(selector)}, keyframes, transition);`);
       }

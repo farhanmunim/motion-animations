@@ -49,7 +49,7 @@ export const DEFAULT_STATE = {
   hover: { revert: true },
   toggle: { autoClose: 0 }, // seconds; click-opened animations close again after this
   pointer: { area: "element", perspective: 900, radius: 120, hold: false }, // "element" | "scene"; perspective and proximity radius in px; hold = stay put when the pointer leaves
-  scramble: { chars: "letters" }, // for the text scramble effect
+  scramble: { chars: "letters", order: "start" }, // for the text scramble effect: which characters, and the order letters settle in
 };
 
 const STORAGE_KEY = "motion-studio:design";
