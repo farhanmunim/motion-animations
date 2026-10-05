@@ -101,6 +101,7 @@ function generatePointerVanilla(state, importFrom) {
 
   const hasNear = follow.some((f) => Object.values(f.props).some((p) => p.axis === "near"));
   const radius = Number(state.pointer?.radius) || 120;
+  const hold = !!state.pointer?.hold;
 
   const config = {};
   for (const f of follow) {
@@ -202,7 +203,7 @@ function generatePointerVanilla(state, importFrom) {
       "    });",
       "  });",
       "});",
-      `document.documentElement.addEventListener("pointerleave", () => update(rest));`,
+      hold ? "" : `document.documentElement.addEventListener("pointerleave", () => update(rest));`,
     );
   } else {
     listeners.push(
@@ -216,16 +217,21 @@ function generatePointerVanilla(state, importFrom) {
       "  frame = requestAnimationFrame(() => {",
       "    const box = root.getBoundingClientRect(); // its centre stays put while it tilts",
       "    const x = (event.clientX - box.left - box.width / 2) / (root.offsetWidth / 2);",
-      "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);",
+      hasNear
+        ? "    // Magnified items stick out past the element's box, so count a margin around it as over."
+        : "",
+      hasNear
+        ? "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2 + radius / 2);"
+        : "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);",
       "    const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;",
       hasNear ? "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });" : "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });",
-      "    else if (inside) update(rest);",
+      hold ? "    // (it stays where it is when the pointer leaves)" : "    else if (inside) update(rest);",
       "    inside = over;",
       "  });",
       "});",
       `document.documentElement.addEventListener("pointerleave", () => {`,
       "  inside = false;",
-      "  update(rest);",
+      hold ? "" : "  update(rest);",
       "});",
     );
   }
@@ -233,7 +239,7 @@ function generatePointerVanilla(state, importFrom) {
   body.push(
     "// Skip the effect for people who ask their system for less motion.",
     `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`,
-    ...listeners.map((l) => (l ? `  ${l}` : l)),
+    ...listeners.filter(Boolean).map((l) => `  ${l}`),
     "}",
   );
   return [`import { animate, interpolate } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
@@ -363,18 +369,69 @@ function generateScrambleVanilla(state, importFrom) {
   const body = [
     `const element = document.querySelector(".motion-target");`,
     "const finalText = element.textContent;",
+    `const finalChars = [...finalText.replace(/\\s+/g, "")]; // the letters to reveal, without spaces`,
     `const characters = ${js(scrambleChars(state))};`,
     `const transition = ${js(transition)};`,
+    "",
+    "// Only shuffle through characters narrow enough for a letter's cell, so neighbours never overlap.",
+    `const measure = document.createElement("canvas").getContext("2d");`,
+    "const style = getComputedStyle(element);",
+    "measure.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;",
+    "const sizes = Object.fromEntries([...characters].map((char) => [char, measure.measureText(char).width]));",
+    "",
+    "function fit(width) {",
+    "  const ok = [...characters].filter((char) => sizes[char] <= width * 1.08);",
+    "  return ok.length ? ok : [[...characters].sort((a, b) => sizes[a] - sizes[b])[0]];",
+    "}",
+    "",
+    "// Give every letter a cell as wide as the real letter, so shuffling never makes the text jump sideways.",
+    "const pools = [];",
+    "function lockLetters() {",
+    "  element.textContent = finalText;",
+    "  const range = document.createRange();",
+    "  let index = 0;",
+    "  const widths = [...finalText].map((char) => {",
+    "    range.setStart(element.firstChild, index);",
+    "    range.setEnd(element.firstChild, index + char.length);",
+    "    index += char.length;",
+    "    return range.getBoundingClientRect().width;",
+    "  });",
+    "",
+    `  element.textContent = "";`,
+    "  const cells = [];",
+    "  let n = 0;",
+    "  for (const part of finalText.split(/(\\s+)/)) {",
+    "    if (/^\\s+$/.test(part)) {",
+    "      element.append(part);",
+    "      n += [...part].length;",
+    "      continue;",
+    "    }",
+    `    const word = document.createElement("span");`,
+    `    word.style.whiteSpace = "nowrap"; // a word never breaks apart while it shuffles`,
+    "    for (const char of part) {",
+    `      const cell = document.createElement("span");`,
+    "      cell.style.cssText = `display:inline-block;width:${widths[n]}px;text-align:center`;",
+    "      cell.textContent = char;",
+    "      word.append(cell);",
+    "      cells.push(cell);",
+    "      pools.push(fit(widths[n++]));",
+    "    }",
+    "    element.append(word);",
+    "  }",
+    "  return cells;",
+    "}",
+    "",
+    "const cells = lockLetters(); // built once, so nothing is swapped out from under the pointer",
     "",
     "// Letters settle left to right; the ones still waiting keep shuffling.",
     "function scramble() {",
     "  animate(0, 1, {",
     "    ...transition,",
     "    onUpdate(progress) {",
-    "      const settled = Math.floor(progress * finalText.length);",
-    "      element.textContent = [...finalText]",
-    `        .map((char, i) => (i < settled || char === " " ? char : characters[Math.floor(Math.random() * characters.length)]))`,
-    `        .join("");`,
+    "      const settled = Math.floor(progress * cells.length);",
+    "      cells.forEach((cell, i) => {",
+    "        cell.textContent = i < settled ? finalChars[i] : pools[i][Math.floor(Math.random() * pools[i].length)];",
+    "      });",
     "    },",
     "  });",
     "}",

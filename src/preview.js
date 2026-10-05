@@ -292,6 +292,9 @@ export function renderPreview(stage, state, setStatus) {
       const is3d = needs3d(state);
       const scene = state.pointer?.area === "scene";
       const radius = Number(state.pointer?.radius) || 120;
+      const hold = !!state.pointer?.hold;
+      // Magnified items stick out past the element's box, so count a margin around it as "over".
+      const hitPad = follow.some((f) => Object.values(f.props).some((p) => p.axis === "near")) ? radius / 2 : 0;
       const rest = { x: 0, y: 0, enter: 0, px: -Infinity };
       const mappers = follow.map((f) => ({
         els: f.els,
@@ -365,18 +368,18 @@ export function renderPreview(stage, state, setStatus) {
           } else {
             const box = root.getBoundingClientRect();
             x = (event.clientX - box.left - box.width / 2) / (root.offsetWidth / 2);
-            y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);
+            y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2 + hitPad);
           }
           const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;
           if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });
-          else if (inside) update(rest);
+          else if (inside && !hold) update(rest);
           inside = over;
         });
       };
       const onLeave = () => {
         stopDemo();
         inside = false;
-        update(rest);
+        if (!hold) update(rest);
       };
       document.addEventListener("pointermove", onMove);
       document.documentElement.addEventListener("pointerleave", onLeave);
@@ -414,8 +417,11 @@ function renderScramble(stage, root, state, setStatus) {
   const trigger = effectiveTrigger(state);
   const finalText = state.element.text || "Hello";
   const chars = scrambleChars(state);
+  const letters = finalText.replace(/\s+/g, ""); // the cells hold letters only, never spaces
   const t = state.transition;
   let animation;
+  // Built once: swapping elements under a resting pointer would fire a fresh hover event.
+  const { cells, pools } = lockLetters(root, finalText, chars);
   const run = () => {
     animation?.stop();
     animation = animate(0, 1, {
@@ -423,7 +429,8 @@ function renderScramble(stage, root, state, setStatus) {
       delay: Number(t.delay) || 0,
       ease: resolveEase(t),
       onUpdate: (progress) => {
-        root.textContent = scrambleFrame(finalText, progress, chars);
+        const frame = [...scrambleFrame(letters, progress, chars)];
+        cells.forEach((cell, i) => (cell.textContent = frame[i] === letters[i] ? frame[i] : pools[i][Math.floor(Math.random() * pools[i].length)]));
       },
     });
     activeAnimations = [animation];
@@ -448,4 +455,55 @@ function renderScramble(stage, root, state, setStatus) {
       run();
   }
   return run;
+}
+
+/**
+ * Give every letter a cell as wide as the real letter, so shuffling never makes
+ * the text jump sideways. Returns the cells in reading order (spaces excluded)
+ * and, for each, the characters it may shuffle through.
+ */
+function lockLetters(root, text, chars) {
+  root.textContent = text;
+  const node = root.firstChild;
+  const range = document.createRange();
+  let index = 0;
+  const widths = [...text].map((char) => {
+    range.setStart(node, index);
+    range.setEnd(node, index + char.length);
+    index += char.length;
+    return range.getBoundingClientRect().width;
+  });
+  // Shuffle only through characters narrow enough for their cell, so neighbours never overlap.
+  const measure = document.createElement("canvas").getContext("2d");
+  const style = getComputedStyle(root);
+  measure.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const sizes = Object.fromEntries([...chars].map((char) => [char, measure.measureText(char).width]));
+  const fit = (width) => {
+    const ok = [...chars].filter((char) => sizes[char] <= width * 1.08);
+    return ok.length ? ok : [[...chars].sort((a, b) => sizes[a] - sizes[b])[0]];
+  };
+
+  root.textContent = "";
+  const cells = [];
+  const pools = [];
+  let n = 0;
+  for (const part of text.split(/(\s+)/)) {
+    if (/^\s+$/.test(part)) {
+      root.append(part);
+      n += [...part].length;
+      continue;
+    }
+    const word = document.createElement("span");
+    word.style.whiteSpace = "nowrap"; // a word never breaks apart while it shuffles
+    for (const char of part) {
+      const cell = document.createElement("span");
+      cell.style.cssText = `display:inline-block;width:${widths[n]}px;text-align:center`;
+      cell.textContent = char;
+      word.append(cell);
+      cells.push(cell);
+      pools.push(fit(widths[n++]));
+    }
+    root.append(word);
+  }
+  return { cells, pools };
 }

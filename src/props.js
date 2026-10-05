@@ -65,17 +65,6 @@ export const PROPS = {
     format: (v) => (v <= 0 ? "0px 0px 0px rgba(0,0,0,0)" : `0px ${Math.round(v / 2)}px ${v}px rgba(0,0,0,0.35)`),
   },
 
-  offsetDistance: {
-    label: "Position along the path",
-    group: "Appearance",
-    kind: "number",
-    unit: "%",
-    min: 0,
-    max: 100,
-    step: 1,
-    def: 0,
-    format: (v) => `${v}%`,
-  },
   bgShift: {
     label: "Gradient position",
     group: "Appearance",

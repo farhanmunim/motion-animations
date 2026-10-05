@@ -66,8 +66,8 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
     css: `.dock {
   display: inline-flex;
   align-items: flex-end;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 14px;
+  padding: 10px 14px;
   border-radius: calc({{radius}}px + 6px);
   background: rgba(28, 28, 34, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -433,12 +433,12 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
     emoji: "✨",
     thumb: "card",
     markup: `<div class="motion-target bt-card">
-  <span class="bt-trail" aria-hidden="true"><i class="bt-dot"></i></span>
+  <span class="bt-trail" aria-hidden="true"><i class="bt-spin"></i></span>
   <strong>Border trail</strong>
   <span class="bt-text">A light travels around the edge of the card.</span>
 </div>`,
     parts: [
-      { key: "dot", label: "Light", selector: ".bt-dot" },
+      { key: "spin", label: "Light", selector: ".bt-spin" },
       { key: "root", label: "Card", selector: null },
     ],
     clicks: [],
@@ -477,17 +477,12 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   mask-clip: padding-box, border-box;
   mask-composite: exclude;
 }
-/* The light rides along the card's outline (CSS motion path). */
-.bt-dot {
+/* A bright streak on a spinning colour wheel: only the ring shows it. */
+.bt-spin {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 90px;
-  height: 90px;
-  background: radial-gradient(circle, #fff 0%, {{color}} 30%, transparent 68%);
-  offset-path: rect(0 100% 100% 0 round {{radius}}px);
-  offset-anchor: 50% 50%;
-  offset-rotate: 0deg;
+  inset: -100%;
+  background: conic-gradient(from 0deg, transparent 0deg 240deg, {{color}} 320deg, #fff 360deg);
+  will-change: transform;
 }`,
   },
 
@@ -526,12 +521,13 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
 .gl-halo {
   inset: -6px;
   border-radius: calc({{radius}}px + 6px);
-  filter: blur(20px);
+  filter: blur(14px);
   opacity: 0.7;
 }
 .gl-spin {
   position: absolute;
   inset: -100%;
+  will-change: transform;
   background: conic-gradient({{color}}, #ec4899, #f59e0b, #22d3ee, {{color}});
 }
 .gl-body {

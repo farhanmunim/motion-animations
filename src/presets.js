@@ -793,10 +793,10 @@ export const PRESETS = [
       element: { type: "dock" },
       pointer: { area: "element", perspective: 900, radius: 100 },
       tracks: [
-        { part: "item", prop: "scale", axis: "near", values: [1, 1.55] },
-        { part: "item", prop: "y", axis: "near", values: [0, -8] },
+        { part: "item", prop: "scale", axis: "near", values: [1, 1.4] },
+        { part: "item", prop: "y", axis: "near", values: [0, -6] },
       ],
-      transition: spring(320, 22),
+      transition: spring(480, 30),
     },
   },
   {
@@ -807,12 +807,12 @@ export const PRESETS = [
     state: {
       trigger: "pointer",
       element: { type: "compare" },
-      pointer: { area: "element", perspective: 900, radius: 120 },
+      pointer: { area: "element", perspective: 900, radius: 120, hold: true },
       tracks: [
         { part: "after", prop: "clipRight", axis: "x", values: [100, 0] },
         { part: "handle", prop: "xPercent", axis: "x", values: [-100, 0] },
       ],
-      transition: spring(380, 36),
+      transition: spring(600, 42),
     },
   },
   {
@@ -827,10 +827,10 @@ export const PRESETS = [
         { part: "surface", prop: "width", values: [140, 300] },
         { part: "surface", prop: "height", values: [46, 190] },
         { part: "surface", prop: "borderRadius", values: [23, 18] },
-        { part: "btn", prop: "opacity", values: [1, 0] },
-        { part: "form", prop: "opacity", values: [0, 1] },
+        { part: "btn", prop: "opacity", values: [1, 0, 0], times: [0, 0.3, 1] },
+        { part: "form", prop: "opacity", values: [0, 0, 1], times: [0, 0.5, 1] },
       ],
-      transition: spring(380, 34),
+      transition: tween(0.5, "smooth"),
     },
   },
   {
@@ -847,8 +847,8 @@ export const PRESETS = [
         { part: "tool", prop: "opacity", values: [0, 1] },
         { part: "tool", prop: "scale", values: [0.5, 1] },
       ],
-      transition: spring(420, 32),
-      stagger: { enabled: true, each: 0.04, from: "first" },
+      transition: spring(520, 34),
+      stagger: { enabled: true, each: 0.03, from: "first" },
     },
   },
   {
@@ -860,7 +860,7 @@ export const PRESETS = [
       trigger: "load",
       element: { type: "marquee" },
       tracks: [{ part: "track", prop: "xPercent", values: [0, -50] }],
-      transition: tween(18, "linear", { infinite: true, repeatType: "loop" }),
+      transition: tween(12, "linear", { infinite: true, repeatType: "loop" }),
     },
   },
   {
@@ -871,8 +871,8 @@ export const PRESETS = [
     state: {
       trigger: "load",
       element: { type: "bordertrail" },
-      tracks: [{ part: "dot", prop: "offsetDistance", values: [0, 100] }],
-      transition: tween(4, "linear", { infinite: true, repeatType: "loop" }),
+      tracks: [{ part: "spin", prop: "rotate", values: [0, 360] }],
+      transition: tween(3, "linear", { infinite: true, repeatType: "loop" }),
     },
   },
   {
@@ -884,7 +884,7 @@ export const PRESETS = [
       trigger: "load",
       element: { type: "glow" },
       tracks: [{ part: "spin", prop: "rotate", values: [0, 360] }],
-      transition: tween(7, "linear", { infinite: true, repeatType: "loop" }),
+      transition: tween(6, "linear", { infinite: true, repeatType: "loop" }),
     },
   },
   {
@@ -896,7 +896,7 @@ export const PRESETS = [
       trigger: "inView",
       element: { type: "counter" },
       tracks: [{ part: "value", prop: "count", values: [0, 2480] }],
-      transition: tween(2.2, "expoOut"),
+      transition: tween(1.6, "easeOut"),
     },
   },
   {
@@ -939,8 +939,8 @@ export const PRESETS = [
         { part: "a", prop: "yPercent", values: [0, -100] },
         { part: "b", prop: "yPercent", values: [100, 0] },
       ],
-      transition: tween(0.45, "smooth"),
-      stagger: { enabled: true, each: 0.025, from: "first" },
+      transition: tween(0.4, "smooth"),
+      stagger: { enabled: true, each: 0.012, from: "first" },
     },
   },
   {

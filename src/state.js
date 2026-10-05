@@ -48,7 +48,7 @@ export const DEFAULT_STATE = {
   scroll: { offsetStart: "start end", offsetEnd: "end start" },
   hover: { revert: true },
   toggle: { autoClose: 0 }, // seconds; click-opened animations close again after this
-  pointer: { area: "element", perspective: 900, radius: 120 }, // "element" | "scene"; perspective and proximity radius in px
+  pointer: { area: "element", perspective: 900, radius: 120, hold: false }, // "element" | "scene"; perspective and proximity radius in px; hold = stay put when the pointer leaves
   scramble: { chars: "letters" }, // for the text scramble effect
 };
 

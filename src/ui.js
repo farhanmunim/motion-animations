@@ -568,6 +568,14 @@ function renderTriggerSection(state, set) {
         onChange: (v) => set({ pointer: { area: v } }),
       }),
     );
+    kids.push(
+      toggleField({
+        label: "Stay put when the pointer leaves",
+        value: !!state.pointer?.hold,
+        hint: "Keep the last position instead of springing back to rest. Great for comparison sliders.",
+        onChange: (v) => set({ pointer: { hold: v } }),
+      }),
+    );
     if (state.tracks.some((t) => t.axis === "near")) {
       kids.push(
         numberField({
