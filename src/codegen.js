@@ -7,7 +7,7 @@
  *   - a complete standalone HTML file for trying it out
  *   - the CSS that makes the exported element look like the preview
  */
-import { scrambleChars, Raw, buildKeyframes, buildFromValues, buildFollow, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, needs3d, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
+import { stepCount, scrambleChars, Raw, buildKeyframes, buildFromValues, buildFollow, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, needs3d, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
 import { elementMarkup } from "./preview.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
@@ -103,6 +103,7 @@ function generatePointerVanilla(state, importFrom) {
   const hasCursor = follow.some((f) => Object.values(f.props).some((p) => String(p.axis).startsWith("cursor")));
   const radius = Number(state.pointer?.radius) || 120;
   const hold = !!state.pointer?.hold;
+  const drag = !!state.pointer?.drag;
 
   const config = {};
   for (const f of follow) {
@@ -123,7 +124,9 @@ function generatePointerVanilla(state, importFrom) {
   }
   body.push(
     "// How the element catches up with the pointer. Lower stiffness = floatier.",
-    `const spring = ${js(spring)};`,
+    drag
+      ? `const spring = matchMedia("(prefers-reduced-motion: reduce)").matches ? { duration: 0 } : ${js(spring)};`
+      : `const spring = ${js(spring)};`,
     "",
     "// What the pointer controls. Each property follows one axis between two values:",
     "//   x      pointer position, left to right",
@@ -198,7 +201,37 @@ function generatePointerVanilla(state, importFrom) {
     "",
   );
   const listeners = [];
-  if (scene) {
+  if (drag) {
+    listeners.push(
+      "// Direct manipulation: grab the element, pull it around, let go and it springs back.",
+      `root.style.touchAction = "none"; // let touch drag it instead of scrolling the page`,
+      `root.style.cursor = "grab";`,
+      "let start = null;",
+      "",
+      `root.addEventListener("pointerdown", (event) => {`,
+      "  start = { x: event.clientX, y: event.clientY };",
+      "  root.setPointerCapture(event.pointerId);",
+      `  root.style.cursor = "grabbing";`,
+      "  update({ ...rest, enter: 1 });",
+      "});",
+      "",
+      `root.addEventListener("pointermove", (event) => {`,
+      "  if (!start) return;",
+      "  const cursorX = event.clientX - start.x;",
+      "  const cursorY = event.clientY - start.y;",
+      `  update({ x: clamp(cursorX / (root.offsetWidth / 2)), y: clamp(cursorY / (root.offsetHeight / 2)), enter: 1${hasCursor ? ", cursorX, cursorY" : ""}${hasNear ? ", px: event.clientX" : ""} });`,
+      "});",
+      "",
+      "function release() {",
+      "  if (!start) return;",
+      "  start = null;",
+      `  root.style.cursor = "grab";`,
+      hold ? "" : "  update(rest);",
+      "}",
+      `root.addEventListener("pointerup", release);`,
+      `root.addEventListener("pointercancel", release);`,
+    );
+  } else if (scene) {
     listeners.push(
       "// Track the pointer anywhere on the page.",
       "let frame;",
@@ -255,13 +288,17 @@ function generatePointerVanilla(state, importFrom) {
       "});",
     );
   }
-  // Respect people who ask their system for less motion.
-  body.push(
-    "// Skip the effect for people who ask their system for less motion.",
-    `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`,
-    ...listeners.filter(Boolean).map((l) => `  ${l}`),
-    "}",
-  );
+  // Respect people who ask their system for less motion (dragging is the visitor's own movement, so it stays).
+  if (drag) {
+    body.push(...listeners);
+  } else {
+    body.push(
+      "// Skip the effect for people who ask their system for less motion.",
+      `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`,
+      ...listeners.filter(Boolean).map((l) => `  ${l}`),
+      "}",
+    );
+  }
   return [`import { animate, interpolate } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
 }
 
@@ -276,6 +313,7 @@ function generateComponentVanilla(state, importFrom) {
   const comp = getComponent(state.element.type);
   const trigger = effectiveTrigger(state);
   if (trigger === "pointer") return generatePointerVanilla(state, importFrom);
+  if (trigger === "step") return generateStepVanilla(state, importFrom);
   const plan = buildPlan(state);
   const transition = buildTransition(state, { mode: "code", multi: false });
   const imports = new Set(["animate"]);
@@ -517,9 +555,106 @@ function generateScrambleVanilla(state, importFrom) {
   return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body].join("\n");
 }
 
+/**
+ * Steps: every keyframe is a state, and each click moves to the next one.
+ * Works for components (tabs, carousels, shapes that morph) and plain elements.
+ */
+function generateStepVanilla(state, importFrom) {
+  const comp = isComponent(state.element.type) ? getComponent(state.element.type) : null;
+  const plan = buildPlan(state);
+  const count = stepCount(state);
+  const imports = new Set(["animate"]);
+  const transition = buildTransition(state, { mode: "code", multi: comp ? false : isMulti(state) });
+  const select = (e) => (comp ? e.selector ?? ":scope" : e.multi ? ".motion-item" : ":scope");
+
+  const states = Array.from({ length: count }, (_, i) => Object.fromEntries(plan.map((e) => [select(e), e.states[i]])));
+  const overrides = {};
+  if (comp && state.stagger.enabled) {
+    for (const e of plan) {
+      if (!e.multi) continue;
+      overrides[select(e)] = { delay: new Raw(staggerCode(state)) };
+      imports.add("stagger");
+    }
+  }
+  if (transition.delay instanceof Raw) imports.add("stagger");
+  const hasOverrides = Object.keys(overrides).length > 0;
+  const every = Number(state.step?.every) || 0;
+  const nexters = comp?.clicks?.length ? comp.clicks : [];
+  const jumpers = comp?.jumps?.length ? comp.jumps : [];
+  const rootSelector = comp ? ".motion-target" : wrapperSelector(state);
+
+  const body = [];
+  if (needsSplit(state)) {
+    body.push(SPLIT_HELPER, "", `splitText(document.querySelector(".motion-target"), ${js(state.element.split)}${state.element.mask ? ", true" : ""});`, "");
+  }
+  body.push(
+    `const root = document.querySelector(${js(rootSelector)});`,
+    `const targets = (selector) => (selector === ":scope" ? [root] : root.querySelectorAll(selector));`,
+    "",
+    `// Honour "reduce motion": jump straight to each state instead of animating.`,
+    `const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;`,
+    `const transition = reduceMotion ? { duration: 0 } : ${js(transition)};`,
+    "",
+  );
+  if (hasOverrides) body.push("// Extra options for some parts: stagger between items.", `const overrides = reduceMotion ? {} : ${js(overrides)};`, "");
+  body.push(
+    "// Every step is one state: what each part looks like at that keyframe.",
+    "// Selectors are relative to the root (\":scope\" is the root itself).",
+    `const states = ${js(states)};`,
+    "",
+  );
+  if (jumpers.length) body.push(`const jumpers = [...root.querySelectorAll(${js(jumpers.join(", "))})]; // each one jumps to its own state`, "");
+  body.push(
+    "let index = 0;",
+    "",
+    "function goTo(next) {",
+    "  index = (next + states.length) % states.length;",
+    "  root.dataset.step = index; // handy for your own CSS",
+  );
+  if (jumpers.length) {
+    body.push(
+      "  // Keep screen readers informed which one is selected.",
+      "  jumpers.forEach((el, i) => {",
+      `    if (!el.hasAttribute("aria-selected")) return;`,
+      `    el.setAttribute("aria-selected", String(i === index));`,
+      "    el.tabIndex = i === index ? 0 : -1; // only the selected tab is in the tab order",
+      "  });",
+    );
+  }
+  body.push(
+    "  for (const selector in states[index]) {",
+    hasOverrides ? "    animate(targets(selector), states[index][selector], { ...transition, ...overrides[selector] });" : "    animate(targets(selector), states[index][selector], transition);",
+    "  }",
+    "}",
+    "",
+    "// Start on the first state, without animating.",
+    "for (const selector in states[0]) animate(targets(selector), states[0][selector], { duration: 0 });",
+    "root.dataset.step = 0;",
+    "",
+  );
+  if (nexters.length) body.push(`for (const el of root.querySelectorAll(${js(nexters.join(", "))})) el.addEventListener("click", () => goTo(index + 1));`);
+  else if (!jumpers.length) body.push(`root.addEventListener("click", () => goTo(index + 1));`);
+  if (jumpers.length) body.push(`jumpers.forEach((el, i) => el.addEventListener("click", () => goTo(i)));`);
+  if (jumpers.length && comp.markup.includes("aria-selected")) {
+    body.push(
+      "",
+      "// Arrow keys move between tabs.",
+      `root.addEventListener("keydown", (event) => {`,
+      `  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;`,
+      "  event.preventDefault();",
+      `  goTo(index + (event.key === "ArrowRight" ? 1 : -1));`,
+      "  jumpers[index].focus();",
+      "});",
+    );
+  }
+  if (every > 0) body.push("", "// Move on by itself too, unless the visitor prefers less motion.", `if (!reduceMotion) setInterval(() => goTo(index + 1), ${every * 1000});`);
+  return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+}
+
 export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
   if (isComponent(state.element.type)) return generateComponentVanilla(state, importFrom);
   if (state.element.type === "scramble") return generateScrambleVanilla(state, importFrom);
+  if (effectiveTrigger(state) === "step") return generateStepVanilla(state, importFrom);
   if (effectiveTrigger(state) === "pointer") return generatePointerVanilla(state, importFrom);
   const multi = isMulti(state);
   const keyframes = buildKeyframes(state);

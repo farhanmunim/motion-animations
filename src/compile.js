@@ -63,6 +63,7 @@ export function hasCustomTimes(track) {
 /** `{ opacity: [0, 0.1, 0.85, 1] }` for tracks with custom keyframe positions. */
 export function buildTimes(state, part) {
   const out = {};
+  if (effectiveTrigger(state) === "step") return out; // each step goes to a single value
   if (state.transition.type === "spring" && effectiveTrigger(state) !== "scroll") return out;
   for (const t of tracksFor(state, part)) {
     if (t.values?.length > 2 && hasCustomTimes(t)) out[motionKey(t.prop)] = trackTimes(t);
@@ -123,6 +124,7 @@ export function buildPlan(state) {
         keyframes: buildKeyframes(state, p.key),
         from: buildFromValues(state, p.key),
         open: buildOpenValues(state, p.key),
+        states: buildStates(state, p.key),
       }));
   }
   return [
@@ -134,8 +136,28 @@ export function buildPlan(state) {
       keyframes: buildKeyframes(state),
       from: buildFromValues(state),
       open: buildOpenValues(state),
+      states: buildStates(state, null),
     },
   ];
+}
+
+/* --- Steps ------------------------------------------------------------------ */
+
+/** How many states a stepped animation has: the longest list of keyframes. */
+export function stepCount(state) {
+  return Math.max(2, ...state.tracks.map((t) => t.values?.length || 0));
+}
+
+/** One object per step: the value of every property of a part at that keyframe. */
+function buildStates(state, part) {
+  return Array.from({ length: stepCount(state) }, (_, i) => {
+    const o = {};
+    for (const t of tracksFor(state, part)) {
+      if (!t.values?.length) continue;
+      o[motionKey(t.prop)] = toMotionValue(t.prop, t.values[Math.min(i, t.values.length - 1)]);
+    }
+    return o;
+  });
 }
 
 /** True when a stagger setting would have any effect. */

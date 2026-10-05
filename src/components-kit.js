@@ -560,4 +560,302 @@ ${radialItem(-30, "settings", "Settings")}
   color: transparent;
 }`,
   },
+
+  morph: {
+    label: "Shape morph (UI states)",
+    emoji: "🫠",
+    thumb: "button",
+    markup: `<button class="motion-target morph" type="button" aria-label="A shape that morphs through states. Click to change state.">
+  <span class="ms-l ms-l1" aria-hidden="true">Get started</span>
+  <span class="ms-l ms-l2" aria-hidden="true"><i class="ms-spin"></i></span>
+  <span class="ms-l ms-l3" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg><i class="ms-bar"><b></b></i></span>
+  <span class="ms-l ms-l4" aria-hidden="true">${icon("check", 18)} Done</span>
+</button>`,
+    parts: [
+      { key: "root", label: "Shape", selector: null },
+      { key: "l1", label: "Content: button", selector: ".ms-l1" },
+      { key: "l2", label: "Content: loader", selector: ".ms-l2" },
+      { key: "l3", label: "Content: player", selector: ".ms-l3" },
+      { key: "l4", label: "Content: done", selector: ".ms-l4" },
+    ],
+    clicks: [],
+    triggers: ["step"],
+    css: `.morph {
+  position: relative;
+  overflow: hidden;
+  width: 168px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 26px;
+  background: {{color}};
+  color: #fff;
+  font: 600 15px system-ui, sans-serif;
+  cursor: pointer;
+}
+/* All four contents sit on top of each other; the animation blurs one into the next. */
+.ms-l {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
+  opacity: 0;
+}
+.ms-l1 {
+  opacity: 1;
+}
+.ms-spin {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  animation: ms-turn 0.8s linear infinite;
+}
+@keyframes ms-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ms-spin {
+    animation: none;
+  }
+}
+.ms-bar {
+  position: relative;
+  width: 110px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.ms-bar b {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: 2px;
+  background: #fff;
+}`,
+  },
+
+  smoothtabs: {
+    label: "Smooth tabs",
+    emoji: "🗂️",
+    thumb: "list",
+    markup: `<div class="motion-target sx-tabs" role="tablist" aria-label="Sections">
+  <span class="sx-ind" aria-hidden="true"></span>
+  <button class="sx-tab sx-t1" type="button" role="tab" aria-selected="true">Overview</button>
+  <button class="sx-tab sx-t2" type="button" role="tab" aria-selected="false" tabindex="-1">Activity</button>
+  <button class="sx-tab sx-t3" type="button" role="tab" aria-selected="false" tabindex="-1">Settings</button>
+</div>`,
+    parts: [
+      { key: "ind", label: "Indicator", selector: ".sx-ind" },
+      { key: "t1", label: "Tab 1 label", selector: ".sx-t1" },
+      { key: "t2", label: "Tab 2 label", selector: ".sx-t2" },
+      { key: "t3", label: "Tab 3 label", selector: ".sx-t3" },
+    ],
+    clicks: [],
+    jumps: [".sx-tab"],
+    triggers: ["step"],
+    css: `.sx-tabs {
+  position: relative;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: calc({{radius}}px + 4px);
+  background: #1c1c22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: system-ui, sans-serif;
+}
+/* One pill that slides under the active tab. */
+.sx-ind {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: 4px;
+  width: 96px;
+  border-radius: {{radius}}px;
+  background: {{color}};
+}
+.sx-tab {
+  position: relative;
+  width: 96px;
+  padding: 9px 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: 600 14px system-ui, sans-serif;
+  cursor: pointer;
+  opacity: 0.65;
+}
+.sx-t1 {
+  opacity: 1;
+}`,
+  },
+
+  carousel: {
+    label: "Carousel",
+    emoji: "🎠",
+    thumb: "card",
+    markup: `<div class="motion-target sx-carousel" role="group" aria-roledescription="carousel" aria-label="Featured">
+  <div class="cs-viewport">
+    <div class="cs-track">
+      <div class="cs-slide cs-s1" role="group" aria-roledescription="slide" aria-label="1 of 3"><span>01</span><strong>Design</strong></div>
+      <div class="cs-slide cs-s2" role="group" aria-roledescription="slide" aria-label="2 of 3"><span>02</span><strong>Build</strong></div>
+      <div class="cs-slide cs-s3" role="group" aria-roledescription="slide" aria-label="3 of 3"><span>03</span><strong>Launch</strong></div>
+    </div>
+  </div>
+  <div class="cs-controls">
+    <button class="cs-dot" type="button" aria-label="Go to slide 1"><i class="cs-pip cs-p1"></i></button>
+    <button class="cs-dot" type="button" aria-label="Go to slide 2"><i class="cs-pip cs-p2"></i></button>
+    <button class="cs-dot" type="button" aria-label="Go to slide 3"><i class="cs-pip cs-p3"></i></button>
+    <button class="cs-next" type="button" aria-label="Next slide">${icon("arrow", 16)}</button>
+  </div>
+</div>`,
+    parts: [
+      { key: "track", label: "Slides", selector: ".cs-track" },
+      { key: "p1", label: "Dot 1", selector: ".cs-p1" },
+      { key: "p2", label: "Dot 2", selector: ".cs-p2" },
+      { key: "p3", label: "Dot 3", selector: ".cs-p3" },
+    ],
+    clicks: [".cs-next"],
+    jumps: [".cs-dot"],
+    triggers: ["step"],
+    css: `.sx-carousel {
+  width: 280px;
+  font-family: system-ui, sans-serif;
+}
+.cs-viewport {
+  overflow: hidden;
+  border-radius: {{radius}}px;
+}
+/* Three slides side by side; the track slides in thirds. */
+.cs-track {
+  display: flex;
+  width: 300%;
+}
+.cs-slide {
+  box-sizing: border-box;
+  flex: 0 0 33.3333%;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  color: #fff;
+}
+.cs-slide span {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 11px;
+  font-weight: 600;
+}
+.cs-slide strong {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+.cs-s1 {
+  background: linear-gradient(135deg, {{color}}, #ec4899);
+}
+.cs-s2 {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+}
+.cs-s3 {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+}
+.cs-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+}
+.cs-dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.cs-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: currentColor;
+  opacity: 0.4;
+}
+.cs-next {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid rgba(127, 127, 140, 0.4);
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}`,
+  },
+
+  swapbtn: {
+    label: "Blur swap button",
+    emoji: "🔀",
+    thumb: "button",
+    markup: `<button class="motion-target swapbtn" type="button" role="switch" aria-checked="false" aria-label="Subscribe">
+  <span class="sw-bg" aria-hidden="true"></span>
+  <span class="sw-a" aria-hidden="true">Subscribe</span>
+  <span class="sw-b" aria-hidden="true">${icon("check", 16)} Subscribed</span>
+</button>`,
+    parts: [
+      { key: "bg", label: "Fill", selector: ".sw-bg" },
+      { key: "a", label: "Label: before", selector: ".sw-a" },
+      { key: "b", label: "Label: after", selector: ".sw-b" },
+    ],
+    clicks: [],
+    triggers: TOGGLE_TRIGGERS,
+    css: `.swapbtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 156px;
+  padding: 13px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: {{radius}}px;
+  background: #1c1c22;
+  color: #fff;
+  font: 600 15px system-ui, sans-serif;
+  cursor: pointer;
+}
+.sw-bg {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: {{color}};
+  opacity: 0;
+}
+/* Both labels share one cell; the animation swaps them through a blur. */
+.sw-a,
+.sw-b {
+  grid-area: 1 / 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sw-b {
+  opacity: 0;
+}
+.swapbtn.is-open {
+  color: {{text}};
+}`,
+  },
 };

@@ -3,7 +3,7 @@
  * real motion.dev functions so the preview behaves exactly like the export.
  */
 import { animate, hover, press, inView, scroll, stagger, interpolate } from "motion";
-import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleFrame, scrambleRank } from "./compile.js";
+import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleRank, stepCount } from "./compile.js";
 import { resolveEase } from "./props.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
@@ -278,6 +278,49 @@ export function renderPreview(stage, state, setStatus) {
         revert();
       };
     }
+    case "step": {
+      const count = stepCount(state);
+      setStatus(component ? "Click the component to move to the next state" : "Click the element to move to the next state");
+      let index = 0;
+      // Elements that jump straight to their own state (tabs, dots), and the ones that just go next.
+      const jumpers = component?.jumps?.length ? component.jumps.flatMap((s) => Array.from(root.querySelectorAll(s))) : [];
+      const goTo = (next) => {
+        index = ((next % count) + count) % count;
+        root.dataset.step = String(index);
+        jumpers.forEach((el, i) => {
+          if (!el.hasAttribute("aria-selected")) return;
+          el.setAttribute("aria-selected", String(i === index));
+          el.tabIndex = i === index ? 0 : -1; // only the selected tab is in the tab order
+        });
+        for (const a of activeAnimations) a.stop?.();
+        activeAnimations = plan.map((e) => animate(e.els, e.states[index], options(e.multi, e.part)));
+      };
+      for (const e of plan) animate(e.els, e.states[0], { duration: 0 }).complete?.();
+      root.dataset.step = "0";
+      const nexters = component?.clicks?.length ? component.clicks.flatMap((s) => Array.from(root.querySelectorAll(s))) : jumpers.length ? [] : [viewTarget];
+      const on2 = (el, type, handler) => {
+        el.addEventListener(type, handler);
+        cleanup.push(() => el.removeEventListener(type, handler));
+      };
+      const on = (el, handler) => on2(el, "click", handler);
+      for (const el of nexters) on(el, (event) => (event.preventDefault(), goTo(index + 1)));
+      jumpers.forEach((el, i) => on(el, (event) => (event.preventDefault(), goTo(i))));
+      if (jumpers.some((el) => el.hasAttribute("aria-selected"))) {
+        // Arrow keys move between tabs.
+        on2(root, "keydown", (event) => {
+          if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+          event.preventDefault();
+          goTo(index + (event.key === "ArrowRight" ? 1 : -1));
+          jumpers[index].focus();
+        });
+      }
+      const every = Number(state.step?.every) || 0;
+      if (every > 0) {
+        const timer = setInterval(() => goTo(index + 1), every * 1000);
+        cleanup.push(() => clearInterval(timer));
+      }
+      return () => goTo(index + 1);
+    }
     case "pointer": {
       const follow = buildFollow(state)
         .map((f) => ({ ...f, els: f.selector === null ? [root] : Array.from(root.querySelectorAll(f.selector)) }))
@@ -293,6 +336,7 @@ export function renderPreview(stage, state, setStatus) {
       const scene = state.pointer?.area === "scene";
       const radius = Number(state.pointer?.radius) || 120;
       const hold = !!state.pointer?.hold;
+      const drag = !!state.pointer?.drag;
       // Magnified items stick out past the element's box, so count a margin around it as "over".
       const hitPad = follow.some((f) => Object.values(f.props).some((p) => p.axis === "near")) ? radius / 2 : 0;
       const rest = { x: 0, y: 0, enter: 0, px: -Infinity, cursorX: 0, cursorY: 0 };
@@ -391,6 +435,52 @@ export function renderPreview(stage, state, setStatus) {
         inside = false;
         if (!hold) update(rest);
       };
+      if (drag) {
+        // Direct manipulation: grab the element, pull it around, let go and it springs back.
+        setStatus("Drag the element. It springs back when you let go");
+        root.style.touchAction = "none";
+        root.style.cursor = "grab";
+        root.style.userSelect = "none";
+        let start = null;
+        const onDown = (event) => {
+          stopDemo();
+          start = { x: event.clientX, y: event.clientY };
+          root.setPointerCapture?.(event.pointerId);
+          root.style.cursor = "grabbing";
+          update({ ...rest, enter: 1, px: event.clientX });
+        };
+        const onDrag = (event) => {
+          if (!start) return;
+          cancelAnimationFrame(frame);
+          frame = requestAnimationFrame(() => {
+            const cursorX = event.clientX - start.x;
+            const cursorY = event.clientY - start.y;
+            update({ x: clamp(cursorX / (root.offsetWidth / 2)), y: clamp(cursorY / (root.offsetHeight / 2)), enter: 1, px: event.clientX, cursorX, cursorY });
+          });
+        };
+        const onUp = () => {
+          if (!start) return;
+          start = null;
+          cancelAnimationFrame(frame);
+          root.style.cursor = "grab";
+          if (!hold) update(rest);
+        };
+        root.addEventListener("pointerdown", onDown);
+        root.addEventListener("pointermove", onDrag);
+        root.addEventListener("pointerup", onUp);
+        root.addEventListener("pointercancel", onUp);
+        const dragTimer = setTimeout(runDemo, 350);
+        cleanup.push(() => {
+          root.removeEventListener("pointerdown", onDown);
+          root.removeEventListener("pointermove", onDrag);
+          root.removeEventListener("pointerup", onUp);
+          root.removeEventListener("pointercancel", onUp);
+          cancelAnimationFrame(frame);
+          stopDemo();
+          clearTimeout(dragTimer);
+        });
+        return runDemo;
+      }
       document.addEventListener("pointermove", onMove);
       document.documentElement.addEventListener("pointerleave", onLeave);
       const startTimer = setTimeout(runDemo, 350);

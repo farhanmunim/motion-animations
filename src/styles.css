@@ -1147,8 +1147,12 @@ input.hex {
   margin: 2px 6px 6px;
   border-bottom: 2px solid var(--border-2);
 }
+/* Springs ignore keyframe positions: dim the strip, but keep its labels readable. */
 .timeline.muted {
-  opacity: 0.4;
+  border-bottom-color: var(--border-c);
+}
+.timeline.muted .tl-dot {
+  background: var(--text-3);
 }
 .tl-dot {
   position: absolute;

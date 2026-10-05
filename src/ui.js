@@ -555,8 +555,30 @@ function renderTriggerSection(state, set) {
       h("p", { class: "hint" }, "Great for toasts and notices: open on click, close on their own."),
     );
   }
+  if (trigger === "step") {
+    kids.push(
+      numberField({
+        label: "Also advance every",
+        value: state.step?.every ?? 0,
+        min: 0,
+        max: 20,
+        step: 0.5,
+        unit: "s",
+        hint: "Move to the next state by itself, like an autoplay carousel. 0 = only when clicked.",
+        onInput: (v) => set({ step: { every: v } }),
+      }),
+    );
+  }
   if (trigger === "pointer") {
     kids.push(
+      toggleField({
+        label: "Only while dragging",
+        value: !!state.pointer?.drag,
+        hint: "Grab the element and pull it around. It springs back when you let go.",
+        onChange: (v) => set({ pointer: { drag: v } }, true),
+      }),
+    );
+    if (!state.pointer?.drag) kids.push(
       selectField({
         label: "Track pointer over",
         value: state.pointer?.area || "element",
@@ -570,7 +592,7 @@ function renderTriggerSection(state, set) {
     );
     kids.push(
       toggleField({
-        label: "Stay put when the pointer leaves",
+        label: state.pointer?.drag ? "Stay where you drop it" : "Stay put when the pointer leaves",
         value: !!state.pointer?.hold,
         hint: "Keep the last position instead of springing back to rest. Great for comparison sliders.",
         onChange: (v) => set({ pointer: { hold: v } }),
@@ -706,12 +728,14 @@ function renderTracksSection(state, set, store) {
   });
   kids.push(addSel);
 
-  const subtitle = effectiveTrigger(state) === "pointer"
+  const subtitle = effectiveTrigger(state) === "step"
+    ? "Every keyframe is a state. Each click moves to the next one, then loops. Give a property as many values as you want states."
+    : effectiveTrigger(state) === "pointer"
     ? "Each property follows the pointer between two values. Choose what drives it: the pointer's X, its Y, or whether it is over the element."
     : comp
     ? "First value = closed, last value = open. Pick a part of the component, then a property."
     : "Each property goes from its first value to its last. Add keyframes for in-between steps.";
-  if (effectiveTrigger(state) !== "pointer") kids.push(h("p", { class: "hint" }, "Want a property to change, hold, then change again? Add keyframes to that property and set when each one happens."));
+  if (effectiveTrigger(state) !== "pointer" && effectiveTrigger(state) !== "step") kids.push(h("p", { class: "hint" }, "Want a property to change, hold, then change again? Add keyframes to that property and set when each one happens."));
   return section("Animate", subtitle, ...kids);
 }
 
@@ -801,8 +825,9 @@ function trackCard(track, index, state, set, store) {
   const def = PROPS[track.prop] || { label: track.prop, kind: "number", min: -100, max: 100, step: 1 };
   const times = trackTimes(track);
   const pointerMode = effectiveTrigger(state) === "pointer";
+  const stepMode = effectiveTrigger(state) === "step";
   const axis = track.axis || defaultAxis(track.prop);
-  const timed = !pointerMode && (state.transition.type === "tween" || effectiveTrigger(state) === "scroll");
+  const timed = !pointerMode && !stepMode && (state.transition.type === "tween" || effectiveTrigger(state) === "scroll");
   const updateTrack = (patch, rerender = false) => {
     const tracks = state.tracks.map((t, i) => (i === index ? { ...t, ...patch } : t));
     store.patch({ tracks }, { rerender });
@@ -850,14 +875,14 @@ function trackCard(track, index, state, set, store) {
 
   // Timeline strip: where each keyframe sits within the duration.
   let strip = null;
-  if (n > 2 && !pointerMode) {
+  if (n > 2 && !pointerMode && !stepMode) {
     strip = h("div", { class: `timeline ${timed ? "" : "muted"}`, title: timed ? "Keyframe positions within the duration" : "Springs play keyframes evenly. Switch Timing to Timed for precise positions." });
     times.forEach((t, vi) => strip.append(h("span", { class: "tl-dot", style: `left:${t * 100}%` }, h("i", {}, `${Math.round(t * 100)}%`))));
   }
 
   visible.forEach((vi) => {
     const value = track.values[vi];
-    const label = pointerMode ? POINTER_LABELS[axis][vi === 0 ? 0 : 1] : vi === 0 ? "From" : vi === n - 1 ? "To" : `Step ${vi}`;
+    const label = pointerMode ? POINTER_LABELS[axis][vi === 0 ? 0 : 1] : stepMode ? `State ${vi + 1}` : vi === 0 ? "From" : vi === n - 1 ? "To" : `Step ${vi}`;
     let control;
     if (def.kind === "color") {
       control = colorField({
@@ -955,7 +980,7 @@ function trackCard(track, index, state, set, store) {
   }
   if (strip) card.append(strip);
   card.append(rows);
-  if (n > 2 && !pointerMode) card.append(h("p", { class: "hint tiny" }, timed ? "Each keyframe's % is when it is reached within the duration. Repeat a value to hold it." : "Springs play keyframes evenly. Switch Timing to Timed to position them."));
+  if (n > 2 && !pointerMode && !stepMode) card.append(h("p", { class: "hint tiny" }, timed ? "Each keyframe's % is when it is reached within the duration. Repeat a value to hold it." : "Springs play keyframes evenly. Switch Timing to Timed to position them."));
   return card;
 }
 
