@@ -201,7 +201,7 @@ export const EASING_CURVES = {
 };
 
 export const EASINGS = [
-  { value: "smooth", label: "Smooth (premium, recommended)" },
+  { value: "smooth", label: "Smooth (recommended)" },
   { value: "expoOut", label: "Expo out (decisive)" },
   { value: "swift", label: "Swift (in and out)" },
   { value: "gentle", label: "Gentle" },

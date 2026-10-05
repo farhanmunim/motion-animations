@@ -2,7 +2,7 @@
  * Live preview. Renders the chosen element into the stage and wires up the
  * real motion.dev functions so the preview behaves exactly like the export.
  */
-import { animate, hover, press, inView, scroll, stagger, interpolate } from "motion";
+import { animate, hover, press, inView, scroll, stagger, interpolate, motionValue, springValue, styleEffect, transformValue } from "motion";
 import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleRank, stepCount } from "./compile.js";
 import { resolveEase } from "./props.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
@@ -343,34 +343,53 @@ export function renderPreview(stage, state, setStatus) {
       // "cursorX / cursorY": the pointer's distance from the middle in px, times a strength.
       const mapFor = (axis, range) =>
         axis === "cursorX" || axis === "cursorY" ? (value) => value * Number(range[1]) : interpolate(axis === "x" || axis === "y" ? [-1, 1] : [0, 1], range);
-      const mappers = follow.map((f) => ({
-        els: f.els,
-        isRoot: f.selector === null,
-        props: Object.entries(f.props).map(([prop, p]) => ({ prop, axis: p.axis, map: mapFor(p.axis, p.range) })),
-      }));
       // "near": how close the pointer is to an item's own centre, 1 on top of it, 0 at `radius` px away.
       const nearOf = (target, px) => {
         const box = target.getBoundingClientRect();
         return Math.max(0, 1 - Math.abs(px - (box.left + box.width / 2)) / radius);
       };
-      const update = (pointer, transition = spring) => {
+
+      // 1. The pointer's numbers. A spring chases each one, so everything glides instead of jumping.
+      //    (Restarting an animation on every mouse move lets fast movement make springs run away.)
+      const sources = { x: motionValue(0), y: motionValue(0), enter: motionValue(0), cursorX: motionValue(0), cursorY: motionValue(0) };
+      const smooth = Object.fromEntries(Object.entries(sources).map(([axis, value]) => [axis, springValue(value, spring)]));
+      const closeness = []; // near: one spring per item
+
+      // 2. Connect every property of every element to the spring it follows.
+      const stops = [];
+      for (const f of follow) {
+        for (const el of f.els) {
+          const styles = {};
+          for (const [prop, p] of Object.entries(f.props)) {
+            const map = mapFor(p.axis, p.range);
+            let source = smooth[p.axis];
+            if (p.axis === "near") {
+              let item = closeness.find((entry) => entry.el === el);
+              if (!item) {
+                const value = motionValue(0);
+                closeness.push((item = { el, value, smooth: springValue(value, spring) }));
+              }
+              source = item.smooth;
+            }
+            styles[prop] = transformValue(() => map(source.get()));
+          }
+          if (is3d && f.selector === null) styles.transformPerspective = motionValue(perspective);
+          stops.push(styleEffect(el, styles));
+        }
+      }
+      cleanup.push(() => {
+        for (const stop of stops) stop();
+        for (const value of [...Object.values(smooth), ...closeness.map((c) => c.smooth)]) value.destroy?.();
+      });
+
+      const update = (pointer) => {
         // Read every position first, then write: mixing the two forces a re-layout each time.
-        const levels = mappers.map((m) => (m.props.some((p) => p.axis === "near") ? m.els.map((target) => nearOf(target, pointer.px)) : []));
-        const running = [];
-        mappers.forEach((m, i) => {
-          const values = {};
-          for (const { prop, axis, map } of m.props) if (axis !== "near") values[prop] = map(pointer[axis]);
-          if (is3d && m.isRoot) values.transformPerspective = perspective;
-          if (Object.keys(values).length) running.push(animate(m.els, values, transition));
-          const near = m.props.filter((p) => p.axis === "near");
-          m.els.forEach((target, n) => {
-            if (near.length) running.push(animate(target, Object.fromEntries(near.map(({ prop, map }) => [prop, map(levels[i][n])])), transition));
-          });
-        });
-        activeAnimations = running;
+        const levels = closeness.map((item) => nearOf(item.el, pointer.px));
+        for (const axis in sources) sources[axis].set(pointer[axis] ?? 0);
+        closeness.forEach((item, i) => item.value.set(levels[i]));
       };
       if (is3d) root.style.transformStyle = "preserve-3d";
-      update(rest, { duration: 0 });
+      update(rest);
 
       // A short scripted sweep so the effect is visible before you touch anything.
       let demoFrame = 0;

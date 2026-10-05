@@ -9,6 +9,7 @@ import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes
 import { generateAll } from "./codegen.js";
 import { COMPONENTS, isComponent, partLabel } from "./components.js";
 import { merge, clone, DEFAULT_STATE } from "./state.js";
+import { thumbIcon } from "./thumbs.js";
 
 /* --- Tiny DOM helper ------------------------------------------------------ */
 
@@ -80,9 +81,10 @@ export function textField({ label, value, placeholder, onInput, multiline = fals
   return h("label", { class: "field stacked" }, h("span", { class: "field-label" }, label), input);
 }
 
-export function colorField({ label, value, onInput, allowAuto = false, autoHint = "Follows the theme: dark text on light, light text on dark." }) {
+export function colorField({ label, value, onInput, allowAuto = false, autoHint = "Follows the theme: dark text on light, light text on dark.", autoColor = null, compact = false }) {
   const isAuto = value === "auto";
-  const shown = isAuto ? themeTextHex() : value;
+  const autoHex = () => autoColor || themeTextHex();
+  const shown = isAuto ? autoHex() : value;
   const color = h("input", { type: "color", value: shown, "aria-label": `${label} picker`, disabled: isAuto });
   const hex = h("input", { type: "text", class: "hex", value: isAuto ? "auto" : value, maxlength: 7, "aria-label": `${label} hex value`, disabled: isAuto });
   color.addEventListener("input", () => {
@@ -100,7 +102,7 @@ export function colorField({ label, value, onInput, allowAuto = false, autoHint 
     controls.append(
       h(
         "label",
-        { class: "toggle small auto-toggle", title: autoHint },
+        { class: `toggle small auto-toggle${compact ? " compact" : ""}`, title: autoHint },
         h("input", {
           type: "checkbox",
           checked: isAuto,
@@ -112,14 +114,14 @@ export function colorField({ label, value, onInput, allowAuto = false, autoHint 
               hex.value = "auto";
               onInput("auto");
             } else {
-              const v = themeTextHex();
+              const v = autoHex();
               color.value = v;
               hex.value = v;
               onInput(v);
             }
           },
         }),
-        h("span", {}, "Auto"),
+        h("span", { class: compact ? "visually-hidden" : "" }, "Auto"),
       ),
     );
   }
@@ -183,9 +185,9 @@ function thumbKeyframes(preset) {
   const kf = isComponent(st.element.type) ? buildPlan(st)[0]?.keyframes || {} : buildKeyframes(st);
   const out = {};
   for (const [k, vals] of Object.entries(kf)) {
-    if (k === "x" || k === "y") out[k] = vals.map((v) => v * 0.25);
-    else if (k === "width" || k === "height" || k === "borderRadius") continue;
-    else if (k === "letterSpacing") continue;
+    if (k === "x" || k === "y") out[k] = vals.map((v) => (typeof v === "number" ? Math.max(-8, Math.min(8, v * 0.25)) : v));
+    // Layout, paint-heavy and variable-driven properties make no sense on a 28px tile.
+    else if (["width", "height", "borderRadius", "letterSpacing", "clipPath", "pathLength", "--n", "backgroundPositionX", "boxShadow"].includes(k)) continue;
     else out[k] = vals;
   }
   return out;
@@ -204,19 +206,21 @@ function thumbTransition(preset) {
 
 function thumbMarkup(preset) {
   const el = merge(clone(DEFAULT_STATE), preset.state).element;
+  const icon = thumbIcon(preset, el);
+  if (icon) return `<span class="th-icon">${icon}</span>`;
   if (isComponent(el.type)) {
     const kind = COMPONENTS[el.type].thumb;
     if (kind === "list") return `<span class="th-list">${"<i></i>".repeat(3)}</span>`;
     if (kind === "grid") return `<span class="th-grid">${"<i></i>".repeat(9)}</span>`;
-    if (kind === "button") return `<span class="th-button"><i>${COMPONENTS[el.type].emoji}</i></span>`;
     return `<span class="th-card"><i></i></span>`;
   }
-  if (el.type === "scramble") return `<span class="th-text"><i>A</i><i>#</i><i>b</i><i>%</i></span>`;
+  if (el.type === "scramble") return `<span class="th-text"><i>A</i><i>#</i><i>b</i></span>`;
   if (el.type === "text") {
-    const word = (el.text || "Aa").split(" ")[0].slice(0, 6);
+    // Two or three letters always fit the 28px tile.
+    const word = [...(el.text || "Aa").split(" ")[0]].slice(0, 3).join("");
     if (el.split === "chars") return `<span class="th-text">${[...word].map((c) => `<i>${c}</i>`).join("")}</span>`;
-    if (el.split === "words") return `<span class="th-text"><i>Ab</i> <i>cd</i></span>`;
-    return `<span class="th-text"><i>${word}</i></span>`;
+    if (el.split === "words") return `<span class="th-text"><i>Ab</i><i>cd</i></span>`;
+    return `<span class="th-text"><i>Aa</i></span>`;
   }
   if (el.type === "list") return `<span class="th-list">${"<i></i>".repeat(3)}</span>`;
   if (el.type === "grid") return `<span class="th-grid">${"<i></i>".repeat(9)}</span>`;
@@ -356,10 +360,23 @@ function presetCard(preset, { onEdit, onCopy, active, dirty }) {
   card.addEventListener("click", () => onEdit(preset));
 
   let playing = null;
+  const reset = () => {
+    playing?.stop?.();
+    playing = null;
+    // Leave the tile exactly as it was drawn: nothing stranded off to one side.
+    for (const el of thumb.querySelectorAll("i, svg")) el.removeAttribute("style");
+  };
   const play = () => {
+    reset();
+    // Icons get one gentle pulse; plain shapes preview their real motion.
+    const icon = thumb.querySelector("svg");
+    if (icon) {
+      playing = animate(icon, { scale: [1, 1.22, 1], rotate: [0, -8, 0] }, { duration: 0.55, ease: [0.22, 1, 0.36, 1] });
+      playing.then?.(reset);
+      return;
+    }
     const targets = thumb.querySelectorAll("i");
     if (!targets.length) return;
-    playing?.stop?.();
     const kf = thumbKeyframes(preset);
     const tr = thumbTransition(preset);
     const st = merge(clone(DEFAULT_STATE), preset.state);
@@ -367,9 +384,12 @@ function presetCard(preset, { onEdit, onCopy, active, dirty }) {
       tr.delay = (i) => i * Math.min(st.stagger.each, 0.08);
     }
     playing = animate(targets, kf, tr);
+    playing.then?.(reset);
   };
   card.addEventListener("pointerenter", play);
+  card.addEventListener("pointerleave", reset);
   card.addEventListener("focusin", play);
+  card.addEventListener("focusout", reset);
   return card;
 }
 
@@ -453,7 +473,7 @@ function renderElementSection(state, set) {
     kids.push(
       h("p", { class: "hint" }, "A working component with real markup. Each part (bars, panel, items...) can be animated on its own in the Animate section below."),
       colorField({ label: "Accent color", value: el.color, onInput: (v) => set({ element: { color: v } }) }),
-      colorField({ label: "Text on accent", value: el.textColor, allowAuto: true, autoHint: "Auto means white text on the accent colour.", onInput: (v) => set({ element: { textColor: v } }) }),
+      colorField({ label: "Text on accent", value: el.textColor, allowAuto: true, autoColor: "#ffffff", autoHint: "Auto means white text on the accent colour.", onInput: (v) => set({ element: { textColor: v } }) }),
       numberField({ label: "Corner radius", value: el.radius, min: 0, max: 40, unit: "px", onInput: (v) => set({ element: { radius: v } }) }),
     );
     return section("Component", "Pick a UI component. Copy the code and it works as-is on your page.", ...kids);
@@ -558,7 +578,7 @@ function renderTriggerSection(state, set) {
   if (trigger === "step") {
     kids.push(
       numberField({
-        label: "Also advance every",
+        label: "Auto-advance",
         value: state.step?.every ?? 0,
         min: 0,
         max: 20,
@@ -740,20 +760,20 @@ function renderTracksSection(state, set, store) {
 }
 
 const POINTER_AXES = [
-  { value: "x", label: "Pointer X (left to right)" },
-  { value: "y", label: "Pointer Y (top to bottom)" },
-  { value: "enter", label: "Pointer over the element" },
-  { value: "near", label: "Pointer closeness (per item, along X)" },
-  { value: "cursorX", label: "Cursor X (follows it, in px)" },
-  { value: "cursorY", label: "Cursor Y (follows it, in px)" },
+  { value: "x", label: "Pointer X" },
+  { value: "y", label: "Pointer Y" },
+  { value: "enter", label: "Over the element" },
+  { value: "near", label: "Closeness (per item)" },
+  { value: "cursorX", label: "Cursor X (px)" },
+  { value: "cursorY", label: "Cursor Y (px)" },
 ];
 const POINTER_LABELS = {
-  x: ["At the left edge", "At the right edge"],
-  y: ["At the top edge", "At the bottom edge"],
-  enter: ["Pointer outside", "Pointer over it"],
-  near: ["Pointer far away", "Pointer right on it"],
-  cursorX: ["At the centre", "Follow strength (×)"],
-  cursorY: ["At the centre", "Follow strength (×)"],
+  x: ["Left edge", "Right edge"],
+  y: ["Top edge", "Bottom edge"],
+  enter: ["Outside", "Over it"],
+  near: ["Far away", "Right on it"],
+  cursorX: ["At centre", "Strength ×"],
+  cursorY: ["At centre", "Strength ×"],
 };
 const POINTER_RANGES = {
   rotateX: [10, -10],
@@ -889,6 +909,7 @@ function trackCard(track, index, state, set, store) {
         label,
         value: value,
         allowAuto: track.prop === "color",
+        compact: true,
         onInput: (v) => {
           const values = [...track.values];
           values[vi] = v;

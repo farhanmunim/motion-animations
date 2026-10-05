@@ -112,9 +112,9 @@ const BASE_COMPONENTS = {
   margin: 0;
   padding: 6px;
   list-style: none;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: {{radius}}px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -12px rgba(0, 0, 0, 0.55);
   transform-origin: top left;
@@ -187,11 +187,11 @@ const BASE_COMPONENTS = {
   translate: -50% -50%;
   width: min(360px, calc(100% - 32px));
   padding: 24px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   border-radius: {{radius}}px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 40px 90px -20px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   pointer-events: none;
 }
 .modal-demo.is-open .modal-backdrop,
@@ -251,7 +251,7 @@ const BASE_COMPONENTS = {
   bottom: 0;
   width: 260px;
   padding: 64px 20px 20px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   box-shadow: 20px 0 60px rgba(0, 0, 0, 0.4);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -328,9 +328,9 @@ const BASE_COMPONENTS = {
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: {{radius}}px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 60px -12px rgba(0, 0, 0, 0.55);
   pointer-events: none;
@@ -374,9 +374,9 @@ const BASE_COMPONENTS = {
     triggers: TOGGLE_TRIGGERS,
     css: `.accordion {
   width: 320px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: {{radius}}px;
   overflow: hidden;
   font-family: system-ui, sans-serif;
@@ -476,10 +476,10 @@ const BASE_COMPONENTS = {
   transform-origin: bottom center;
   white-space: nowrap;
   padding: 8px 12px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   font-size: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px -6px rgba(0, 0, 0, 0.45);
   pointer-events: none;
@@ -540,9 +540,9 @@ const BASE_COMPONENTS = {
 .fab-action {
   width: 44px;
   height: 44px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }`,
   },
@@ -572,9 +572,9 @@ const BASE_COMPONENTS = {
   position: relative;
   width: 280px;
   border-radius: {{radius}}px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-family: system-ui, sans-serif;
   transform-style: preserve-3d;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 28px 60px -14px rgba(0, 0, 0, 0.55);
@@ -652,7 +652,7 @@ const BASE_COMPONENTS = {
   border-radius: {{radius}}px;
   background: #15151b;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   overflow: hidden;
   font-family: system-ui, sans-serif;
 }
@@ -721,7 +721,7 @@ const BASE_COMPONENTS = {
   border-radius: {{radius}}px;
   background: #101016;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   overflow: hidden;
   font-family: system-ui, sans-serif;
 }
@@ -802,7 +802,7 @@ const BASE_COMPONENTS = {
   padding: 20px;
   text-align: center;
   border-radius: {{radius}}px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -810,7 +810,7 @@ const BASE_COMPONENTS = {
   background: linear-gradient(135deg, {{color}}, #ec4899);
 }
 .flip-back {
-  background: #1c1c22;
+  background: #24242c;
   transform: rotateY(180deg);
 }
 .flip-kicker {
@@ -857,7 +857,7 @@ const BASE_COMPONENTS = {
   overflow: hidden;
   background: #0f0f14;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-family: system-ui, sans-serif;
   cursor: pointer;
 }

@@ -712,7 +712,8 @@ export const PRESETS = [
     state: {
       trigger: "pointer",
       element: { type: "parallax" },
-      pointer: { area: "scene", perspective: 900 },
+      // Over the card itself: the layers shift across their full range as the pointer crosses it.
+      pointer: { area: "element", perspective: 900 },
       tracks: [
         { part: "back", prop: "x", axis: "x", values: [30, -30] },
         { part: "back", prop: "y", axis: "y", values: [22, -22] },
@@ -723,7 +724,7 @@ export const PRESETS = [
         { part: "content", prop: "x", axis: "x", values: [8, -8] },
         { part: "content", prop: "y", axis: "y", values: [6, -6] },
       ],
-      transition: spring(120, 24),
+      transition: spring(220, 26),
     },
   },
   {
@@ -889,7 +890,7 @@ export const PRESETS = [
   },
   {
     id: "c-counter",
-    name: "Animated number (count up)",
+    name: "Count-up number",
     emoji: "🔢",
     tags: ["effect"],
     state: {

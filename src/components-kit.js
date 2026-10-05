@@ -38,9 +38,9 @@ export const KIT_COMPONENTS = {
   width: 52px;
   height: 52px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: {{radius}}px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   cursor: pointer;
 }
@@ -84,7 +84,7 @@ export const KIT_COMPONENTS = {
   padding: 15px 26px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: {{radius}}px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   font: 600 15px system-ui, sans-serif;
   cursor: pointer;
@@ -217,9 +217,9 @@ ${radialItem(-30, "settings", "Settings")}
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 50%;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   cursor: pointer;
   /* Hidden (and out of the tab order) until open. */
@@ -297,9 +297,9 @@ ${radialItem(-30, "settings", "Settings")}
   width: min(400px, calc(100% - 32px));
   overflow: hidden;
   border-radius: {{radius}}px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 40px 90px -20px rgba(0, 0, 0, 0.6);
   pointer-events: none;
 }
@@ -312,7 +312,7 @@ ${radialItem(-30, "settings", "Settings")}
   width: 100%;
   padding: 16px 18px;
   border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
   background: none;
   color: inherit;
   font: inherit;
@@ -458,7 +458,7 @@ ${radialItem(-30, "settings", "Settings")}
   height: 200px;
   overflow: hidden;
   border-radius: {{radius}}px;
-  background: #16161b;
+  background: #202027;
   color: #fff;
   font-family: system-ui, sans-serif;
   cursor: pointer;
@@ -509,7 +509,7 @@ ${radialItem(-30, "settings", "Settings")}
   height: 200px;
   overflow: hidden;
   border-radius: {{radius}}px;
-  background: #16161b;
+  background: #202027;
   color: #fff;
   font-family: system-ui, sans-serif;
   cursor: pointer;
@@ -573,10 +573,10 @@ ${radialItem(-30, "settings", "Settings")}
 </button>`,
     parts: [
       { key: "root", label: "Shape", selector: null },
-      { key: "l1", label: "Content: button", selector: ".ms-l1" },
-      { key: "l2", label: "Content: loader", selector: ".ms-l2" },
-      { key: "l3", label: "Content: player", selector: ".ms-l3" },
-      { key: "l4", label: "Content: done", selector: ".ms-l4" },
+      { key: "l1", label: "Button text", selector: ".ms-l1" },
+      { key: "l2", label: "Loader", selector: ".ms-l2" },
+      { key: "l3", label: "Player", selector: ".ms-l3" },
+      { key: "l4", label: "Done message", selector: ".ms-l4" },
     ],
     clicks: [],
     triggers: ["step"],
@@ -665,8 +665,8 @@ ${radialItem(-30, "settings", "Settings")}
   display: inline-flex;
   padding: 4px;
   border-radius: calc({{radius}}px + 4px);
-  background: #1c1c22;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #24242c;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-family: system-ui, sans-serif;
 }
 /* One pill that slides under the active tab. */
@@ -817,8 +817,8 @@ ${radialItem(-30, "settings", "Settings")}
 </button>`,
     parts: [
       { key: "bg", label: "Fill", selector: ".sw-bg" },
-      { key: "a", label: "Label: before", selector: ".sw-a" },
-      { key: "b", label: "Label: after", selector: ".sw-b" },
+      { key: "a", label: "Text before", selector: ".sw-a" },
+      { key: "b", label: "Text after", selector: ".sw-b" },
     ],
     clicks: [],
     triggers: TOGGLE_TRIGGERS,
@@ -830,7 +830,7 @@ ${radialItem(-30, "settings", "Settings")}
   padding: 13px 22px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: {{radius}}px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
   font: 600 15px system-ui, sans-serif;
   cursor: pointer;

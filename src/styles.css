@@ -525,11 +525,22 @@ textarea:focus-visible {
   display: inline-block;
   font-style: normal;
   background: var(--text-1);
-  will-change: transform;
 }
 .preset-card.active .thumb i,
 .preset-card:hover .thumb i {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.th-icon {
+  display: grid;
+  place-items: center;
+  color: var(--text-1);
+}
+.th-icon svg {
+  display: block;
+}
+.preset-card:hover .th-icon,
+.preset-card.active .th-icon {
+  color: var(--accent);
 }
 .th-box i {
   width: 12px;
@@ -549,8 +560,9 @@ textarea:focus-visible {
   border-radius: 3px;
 }
 .th-text {
+  display: flex;
   font-weight: 800;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
@@ -1047,8 +1059,13 @@ input[type="color"] {
   background: var(--surface);
   cursor: pointer;
 }
+/* Icon-only "Auto" box in tight keyframe rows: keep clear of its neighbours. */
+.auto-toggle.compact {
+  margin: 0 5px;
+}
 input.hex {
   width: 92px;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   text-transform: lowercase;
@@ -1139,7 +1156,10 @@ input.hex {
 }
 .keyframe-row .field {
   flex: 1;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 62px 1fr;
+}
+.keyframe-row .field-label {
+  line-height: 1.2;
 }
 .timeline {
   position: relative;

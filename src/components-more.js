@@ -72,7 +72,7 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   padding: 10px 14px;
   border-radius: calc({{radius}}px + 6px);
   background: rgba(28, 28, 34, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
 }
 .dk-item {
@@ -218,9 +218,9 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   height: 46px;
   border-radius: 23px;
   overflow: hidden;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 24px 50px -12px rgba(0, 0, 0, 0.5);
 }
 .mp-btn {
@@ -322,8 +322,8 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   padding: 4px;
   overflow: hidden;
   border-radius: 999px;
-  background: #1c1c22;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #24242c;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 18px 40px -10px rgba(0, 0, 0, 0.5);
 }
 .tb-toggle,
@@ -415,9 +415,9 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   gap: 8px;
   padding: 10px 16px;
   border-radius: 999px;
-  background: #1c1c22;
+  background: #24242c;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -451,9 +451,9 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   width: 280px;
   padding: 22px;
   border-radius: {{radius}}px;
-  background: #16161b;
+  background: #202027;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-family: system-ui, sans-serif;
 }
 .bt-card strong {
@@ -536,7 +536,7 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   gap: 4px;
   padding: 22px;
   border-radius: {{radius}}px;
-  background: #16161b;
+  background: #202027;
   color: #fff;
 }
 .gl-body span {
@@ -564,7 +564,7 @@ ${dockItem("Settings", "settings", "#10b981", "#22c55e")}
   gap: 8px;
   padding: 24px 32px;
   border-radius: {{radius}}px;
-  background: #16161b;
+  background: #202027;
   color: #fff;
   font-family: system-ui, sans-serif;
 }

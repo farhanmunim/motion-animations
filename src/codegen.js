@@ -122,11 +122,12 @@ function generatePointerVanilla(state, importFrom) {
       "",
     );
   }
+  const axes = ["x", "y", "enter", ...(hasCursor ? ["cursorX", "cursorY"] : [])];
+  const chase = (value) => (drag ? `calm ? ${value} : springValue(${value}, spring)` : `springValue(${value}, spring)`);
   body.push(
     "// How the element catches up with the pointer. Lower stiffness = floatier.",
-    drag
-      ? `const spring = matchMedia("(prefers-reduced-motion: reduce)").matches ? { duration: 0 } : ${js(spring)};`
-      : `const spring = ${js(spring)};`,
+    `const spring = ${js(spring)};`,
+    ...(drag ? [`const calm = matchMedia("(prefers-reduced-motion: reduce)").matches; // no springing for people who prefer less motion`] : []),
     "",
     "// What the pointer controls. Each property follows one axis between two values:",
     "//   x      pointer position, left to right",
@@ -135,18 +136,6 @@ function generatePointerVanilla(state, importFrom) {
     ...(hasNear ? ["//   near   far from the pointer to right under it, measured per item"] : []),
     ...(hasCursor ? ["//   cursorX / cursorY  the pointer's distance from the middle in px, times a strength"] : []),
     `const follow = ${js(config)};`,
-    "",
-    "// Turn every range into a function: pointer value in, CSS value out.",
-    "const mappers = Object.entries(follow).map(([selector, props]) => ({",
-    "  selector,",
-    "  props: Object.entries(props).map(([prop, config]) => {",
-    "    const [axis, range] = Object.entries(config)[0];",
-    hasCursor
-      ? "    const map = axis.startsWith(\"cursor\") ? (value) => value * range[1] : interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range);"
-      : "",
-    hasCursor ? "    return { prop, axis, map };" : "    return { prop, axis, map: interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range) };",
-    "  }),",
-    "}));",
     "",
     "const targets = (selector) => (selector === \":scope\" ? [root] : root.querySelectorAll(selector));",
     "",
@@ -160,35 +149,53 @@ function generatePointerVanilla(state, importFrom) {
           "  return Math.max(0, 1 - Math.abs(x - (box.left + box.width / 2)) / radius);",
           "}",
           "",
-          "function update(pointer, transition = spring) {",
-          "  // Read every position first, then write: mixing the two forces the browser to re-layout again and again.",
-          "  const items = mappers.map(({ selector, props }) => (props.some((prop) => prop.axis === \"near\") ? [...targets(selector)] : []));",
-          "  const levels = items.map((list) => list.map((item) => near(item, pointer.px)));",
-          "",
-          "  mappers.forEach(({ selector, props }, i) => {",
-          "    const values = {};",
-          "    for (const { prop, axis, map } of props) if (axis !== \"near\") values[prop] = map(pointer[axis]);",
-          is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
-          "    if (Object.keys(values).length) animate(targets(selector), values, transition);",
-          "",
-          "    // Items that react to proximity each get their own value.",
-          "    const nearProps = props.filter((prop) => prop.axis === \"near\");",
-          "    items[i].forEach((item, n) => {",
-          "      animate(item, Object.fromEntries(nearProps.map(({ prop, map }) => [prop, map(levels[i][n])])), transition);",
-          "    });",
-          "  });",
-          "}",
         ]
-      : [
-          "function update(pointer, transition = spring) {",
-          "  for (const { selector, props } of mappers) {",
-          "    const values = {};",
-          "    for (const { prop, axis, map } of props) values[prop] = map(pointer[axis]);",
-          is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
-          "    animate(targets(selector), values, transition);",
-          "  }",
-          "}",
-        ]),
+      : []),
+    "// 1. The pointer's numbers. A spring chases each one, so everything glides instead of jumping.",
+    "//    (Restarting an animation on every mouse move lets fast movement make springs run away.)",
+    `const pointer = { ${axes.map((axis) => `${axis}: motionValue(0)`).join(", ")} };`,
+    drag
+      ? "const smooth = Object.fromEntries(Object.entries(pointer).map(([axis, value]) => [axis, calm ? value : springValue(value, spring)]));"
+      : "const smooth = Object.fromEntries(Object.entries(pointer).map(([axis, value]) => [axis, springValue(value, spring)]));",
+    "",
+    "// 2. Connect every property to the spring it follows.",
+    ...(hasNear ? ["const closeness = []; // near: one value per item"] : []),
+    "for (const [selector, props] of Object.entries(follow)) {",
+    "  for (const element of targets(selector)) {",
+    "    const styles = {};",
+    "    for (const [prop, config] of Object.entries(props)) {",
+    "      const [axis, range] = Object.entries(config)[0];",
+    hasCursor
+      ? "      const map = axis.startsWith(\"cursor\") ? (value) => value * range[1] : interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range);"
+      : "      const map = interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range);",
+    hasNear ? "      let source = smooth[axis];" : "      const source = smooth[axis];",
+    ...(hasNear
+      ? [
+          "      if (axis === \"near\") {",
+          "        let item = closeness.find((entry) => entry.element === element);",
+          `        if (!item) closeness.push((item = { element, value: motionValue(0), smooth: null }));`,
+          `        item.smooth ??= ${chase("item.value")};`,
+          "        source = item.smooth;",
+          "      }",
+        ]
+      : []),
+    "      styles[prop] = transformValue(() => map(source.get()));",
+    "    }",
+    is3d ? `    if (selector === ":scope") styles.transformPerspective = motionValue(perspective);` : "",
+    "    styleEffect(element, styles);",
+    "  }",
+    "}",
+    "",
+    "function update(next) {",
+    ...(hasNear
+      ? [
+          "  // Read every position first, then write: mixing the two forces the browser to re-layout again and again.",
+          "  const levels = closeness.map(({ element }) => near(element, next.px));",
+        ]
+      : []),
+    "  for (const axis in pointer) pointer[axis].set(next[axis]);",
+    ...(hasNear ? ["  closeness.forEach(({ value }, i) => value.set(levels[i]));"] : []),
+    "}",
     "",
     hasNear
       ? "const rest = { x: 0, y: 0, enter: 0, px: -Infinity }; // px: pointer position in the viewport"
@@ -196,8 +203,6 @@ function generatePointerVanilla(state, importFrom) {
       ? "const rest = { x: 0, y: 0, enter: 0, cursorX: 0, cursorY: 0 };"
       : "const rest = { x: 0, y: 0, enter: 0 };",
     "const clamp = (value) => Math.max(-1, Math.min(1, value));",
-    "",
-    "update(rest, { duration: 0 }); // start at rest",
     "",
   );
   const listeners = [];
@@ -299,7 +304,7 @@ function generatePointerVanilla(state, importFrom) {
       "}",
     );
   }
-  return [`import { animate, interpolate } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+  return [`import { motionValue, springValue, styleEffect, transformValue, interpolate } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
 }
 
 /* --- Components ------------------------------------------------------------ */
