@@ -16,7 +16,9 @@
 const TOGGLE_TRIGGERS = ["toggle", "hover", "press", "load", "inView"];
 const POINTER_TRIGGERS = ["pointer", "hover", "toggle", "press", "load", "inView"];
 
-export const COMPONENTS = {
+import { EXTRA_COMPONENTS } from "./components-more.js";
+
+const BASE_COMPONENTS = {
   hamburger: {
     label: "Hamburger menu button",
     emoji: "🍔",
@@ -968,6 +970,8 @@ export const COMPONENTS = {
 }`,
   },
 };
+
+export const COMPONENTS = { ...BASE_COMPONENTS, ...EXTRA_COMPONENTS };
 
 export function isComponent(type) {
   return Object.prototype.hasOwnProperty.call(COMPONENTS, type);

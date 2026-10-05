@@ -34,6 +34,16 @@ export function renderTimelinePreview(stage, state, { setStatus, onTick, onSelec
   runCleanup();
   const scrolly = state.trigger === "inView" || state.trigger === "scroll";
   stage.classList.toggle("scrolly", scrolly);
+  // A scrollable area has to be reachable with the keyboard, and needs a name.
+  if (scrolly) {
+    stage.tabIndex = 0;
+    stage.setAttribute("role", "region");
+    stage.setAttribute("aria-label", "Scrollable preview");
+  } else {
+    stage.tabIndex = -1;
+    stage.removeAttribute("role");
+    stage.removeAttribute("aria-label");
+  }
   const inner = `<div class="stage-inner t-scene"><style>${sceneCss(state.scene)}</style>${sceneMarkup(state.scene)}</div>`;
   stage.innerHTML = scrolly
     ? `<div class="scroll-filler top"><span>Scroll down ↓</span></div>${inner}<div class="scroll-filler bottom"><span>Keep scrolling</span></div>`

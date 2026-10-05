@@ -70,6 +70,22 @@ export function buildTimes(state, part) {
   return out;
 }
 
+/* --- Text scramble --------------------------------------------------------- */
+
+export const SCRAMBLE_TRIGGERS = ["load", "hover", "toggle", "inView"];
+export const SCRAMBLE_SETS = {
+  letters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+  symbols: "!<>-_\\/[]{}=+*^?#%&",
+  binary: "01",
+};
+export const scrambleChars = (state) => SCRAMBLE_SETS[state.scramble?.chars] || SCRAMBLE_SETS.letters;
+
+/** One frame of the effect: letters settle left to right, the rest keep shuffling. */
+export function scrambleFrame(text, progress, chars) {
+  const settled = Math.floor(progress * text.length);
+  return [...text].map((c, i) => (i < settled || c === " " ? c : chars[Math.floor(Math.random() * chars.length)])).join("");
+}
+
 /** True when the animation targets several elements (list items, words, letters...). */
 export function isMulti(state) {
   const el = state.element;
@@ -123,6 +139,7 @@ export function effectiveTrigger(state) {
     const allowed = getComponent(state.element.type).triggers;
     return allowed.includes(state.trigger) ? state.trigger : allowed[0];
   }
+  if (state.element.type === "scramble") return SCRAMBLE_TRIGGERS.includes(state.trigger) ? state.trigger : "load";
   // Following the pointer needs one target; groups of items fall back to hover.
   if (state.trigger === "pointer" && isMulti(state)) return "hover";
   return state.trigger;
@@ -139,6 +156,7 @@ export function effectiveTrigger(state) {
 export function defaultAxis(prop) {
   if (["x", "xPercent", "rotateY", "skewX"].includes(prop)) return "x";
   if (["y", "yPercent", "rotateX", "skewY"].includes(prop)) return "y";
+  if (prop === "clipRight") return "x";
   return "enter";
 }
 

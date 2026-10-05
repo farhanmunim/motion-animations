@@ -5,7 +5,7 @@
 import { animate } from "motion";
 import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase, themeTextHex } from "./props.js";
 import { PRESETS } from "./presets.js";
-import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes, isMulti, defaultAxis, needs3d } from "./compile.js";
+import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes, isMulti, defaultAxis, needs3d, SCRAMBLE_TRIGGERS } from "./compile.js";
 import { generateAll } from "./codegen.js";
 import { COMPONENTS, isComponent, partLabel } from "./components.js";
 import { merge, clone, DEFAULT_STATE } from "./state.js";
@@ -172,6 +172,7 @@ const CATEGORIES = [
   { id: "text", label: "Text", short: "Text", tag: "text" },
   { id: "multiple", label: "Lists & grids", short: "Lists", tag: "multiple" },
   { id: "interaction", label: "Pointer, hover & press", short: "Pointer", tag: "interaction" },
+  { id: "effect", label: "Effects", short: "Effects", tag: "effect" },
   { id: "scroll", label: "Scroll", short: "Scroll", tag: "scroll" },
   { id: "loop", label: "Loops & attention", short: "Loops", tag: "loop", extra: "attention" },
 ];
@@ -210,6 +211,7 @@ function thumbMarkup(preset) {
     if (kind === "button") return `<span class="th-button"><i>${COMPONENTS[el.type].emoji}</i></span>`;
     return `<span class="th-card"><i></i></span>`;
   }
+  if (el.type === "scramble") return `<span class="th-text"><i>A</i><i>#</i><i>b</i><i>%</i></span>`;
   if (el.type === "text") {
     const word = (el.text || "Aa").split(" ")[0].slice(0, 6);
     if (el.split === "chars") return `<span class="th-text">${[...word].map((c) => `<i>${c}</i>`).join("")}</span>`;
@@ -396,7 +398,7 @@ export function renderDesign(container, store, { headerOnly = false } = {}) {
   container.append(renderHeader(state, set, store));
   container.append(renderElementSection(state, set));
   container.append(renderTriggerSection(state, set));
-  container.append(renderTracksSection(state, set, store));
+  container.append(state.element.type === "scramble" ? renderScrambleSection(state, set) : renderTracksSection(state, set, store));
   container.append(renderTimingSection(state, set));
 }
 
@@ -433,7 +435,12 @@ function renderElementSection(state, set) {
           const def = PRESETS.find((p) => p.state.element?.type === v);
           if (def) Object.assign(patch, clone(def.state), { element: { ...def.state.element, color: el.color, textColor: el.textColor, radius: el.radius } });
           if (!COMPONENTS[v].triggers.includes(patch.trigger || state.trigger)) patch.trigger = COMPONENTS[v].triggers[0];
-        } else if (isComponent(el.type)) {
+        } else if (v === "scramble") {
+          // The scramble effect plays on its own; it has no properties to animate.
+          patch.tracks = [];
+          if (!SCRAMBLE_TRIGGERS.includes(state.trigger)) patch.trigger = "load";
+          if (!el.text || el.text === "Hello") patch.element = { type: v, text: "Motion Studio" };
+        } else if (isComponent(el.type) || el.type === "scramble") {
           // Part-based tracks make no sense on a plain element: start with a simple fade up.
           patch.tracks = clone(DEFAULT_STATE.tracks);
         }
@@ -452,7 +459,7 @@ function renderElementSection(state, set) {
     return section("Component", "Pick a UI component. Copy the code and it works as-is on your page.", ...kids);
   }
 
-  if (el.type === "text" || el.type === "button" || el.type === "card") {
+  if (el.type === "text" || el.type === "button" || el.type === "card" || el.type === "scramble") {
     kids.push(textField({ label: "Text", value: el.text, onInput: (v) => set({ element: { text: v } }) }));
   }
   if (el.type === "text") {
@@ -496,10 +503,10 @@ function renderElementSection(state, set) {
       }),
     );
   }
-  if (el.type !== "custom" && el.type !== "text") {
+  if (el.type !== "custom" && el.type !== "text" && el.type !== "scramble") {
     kids.push(colorField({ label: "Color", value: el.color, onInput: (v) => set({ element: { color: v } }) }));
   }
-  if (el.type === "text" || el.type === "button" || el.type === "list" || el.type === "grid") {
+  if (el.type === "text" || el.type === "scramble" || el.type === "button" || el.type === "list" || el.type === "grid") {
     kids.push(colorField({ label: "Text color", value: el.textColor, allowAuto: true, onInput: (v) => set({ element: { textColor: v } }) }));
   }
   if (el.type === "box" || el.type === "circle") {
@@ -515,7 +522,12 @@ function renderElementSection(state, set) {
 function renderTriggerSection(state, set) {
   const kids = [];
   const comp = isComponent(state.element.type) ? COMPONENTS[state.element.type] : null;
-  const options = comp ? TRIGGERS.filter((t) => comp.triggers.includes(t.value)) : TRIGGERS.filter((t) => t.value !== "pointer" || !isMulti(state));
+  const scramble = state.element.type === "scramble";
+  const options = comp
+    ? TRIGGERS.filter((t) => comp.triggers.includes(t.value))
+    : scramble
+    ? TRIGGERS.filter((t) => SCRAMBLE_TRIGGERS.includes(t.value))
+    : TRIGGERS.filter((t) => t.value !== "pointer" || !isMulti(state));
   const trigger = effectiveTrigger(state);
   kids.push(
     segmented({
@@ -556,6 +568,20 @@ function renderTriggerSection(state, set) {
         onChange: (v) => set({ pointer: { area: v } }),
       }),
     );
+    if (state.tracks.some((t) => t.axis === "near")) {
+      kids.push(
+        numberField({
+          label: "Reach",
+          value: state.pointer?.radius ?? 120,
+          min: 30,
+          max: 400,
+          step: 5,
+          unit: "px",
+          hint: "How close the pointer has to be to an item before it reacts. Larger = a wider, smoother wave.",
+          onInput: (v) => set({ pointer: { radius: v } }),
+        }),
+      );
+    }
     if (needs3d(state)) {
       kids.push(
         numberField({
@@ -604,6 +630,23 @@ function renderTriggerSection(state, set) {
     );
   }
   return section("Trigger", "When should it play?", ...kids);
+}
+
+function renderScrambleSection(state, set) {
+  return section(
+    "Scramble",
+    "Letters shuffle, then settle into your text one by one. The duration below sets how long that takes.",
+    selectField({
+      label: "Shuffle with",
+      value: state.scramble?.chars || "letters",
+      options: [
+        { value: "letters", label: "Letters" },
+        { value: "symbols", label: "Symbols" },
+        { value: "binary", label: "Binary (0 and 1)" },
+      ],
+      onChange: (v) => set({ scramble: { chars: v } }),
+    }),
+  );
 }
 
 function renderTracksSection(state, set, store) {
@@ -658,11 +701,13 @@ const POINTER_AXES = [
   { value: "x", label: "Pointer X (left to right)" },
   { value: "y", label: "Pointer Y (top to bottom)" },
   { value: "enter", label: "Pointer over the element" },
+  { value: "near", label: "Pointer closeness (per item, along X)" },
 ];
 const POINTER_LABELS = {
   x: ["At the left edge", "At the right edge"],
   y: ["At the top edge", "At the bottom edge"],
   enter: ["Pointer outside", "Pointer over it"],
+  near: ["Pointer far away", "Pointer right on it"],
 };
 const POINTER_RANGES = {
   rotateX: [10, -10],
@@ -679,6 +724,7 @@ const POINTER_RANGES = {
   opacity: [0, 1],
   blur: [0, 6],
   shadow: [0, 40],
+  clipRight: [100, 0],
 };
 
 /** Start values for a property that follows the pointer. */
@@ -928,6 +974,15 @@ function renderTimingSection(state, set) {
     return section("Smoothing", null, ...kids);
   }
 
+  if (state.element.type === "scramble") {
+    kids.push(
+      numberField({ label: "Duration", value: t.duration, min: 0.2, max: 5, step: 0.05, unit: "s", onInput: (v) => set({ transition: { duration: v, type: "tween" } }) }),
+      easingFields(state, set),
+      numberField({ label: "Delay", value: t.delay, min: 0, max: 5, step: 0.05, unit: "s", onInput: (v) => set({ transition: { delay: v } }) }),
+    );
+    return section("Timing", null, ...kids);
+  }
+
   if (effectiveTrigger(state) === "scroll") {
     kids.push(h("p", { class: "hint" }, "Scroll-linked animations follow your scroll position, so duration and delay do not apply."));
     kids.push(easingFields(state, set));
@@ -947,7 +1002,7 @@ function renderTimingSection(state, set) {
   );
 
   if (t.type === "tween") {
-    kids.push(numberField({ label: "Duration", value: t.duration, min: 0.05, max: 5, step: 0.05, unit: "s", onInput: (v) => set({ transition: { duration: v } }) }));
+    kids.push(numberField({ label: "Duration", value: t.duration, min: 0.05, max: 40, step: 0.05, unit: "s", onInput: (v) => set({ transition: { duration: v } }) }));
     kids.push(easingFields(state, set));
   } else {
     kids.push(

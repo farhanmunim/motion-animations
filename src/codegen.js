@@ -7,7 +7,7 @@
  *   - a complete standalone HTML file for trying it out
  *   - the CSS that makes the exported element look like the preview
  */
-import { Raw, buildKeyframes, buildFromValues, buildFollow, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, needs3d, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
+import { scrambleChars, Raw, buildKeyframes, buildFromValues, buildFollow, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, needs3d, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
 import { elementMarkup } from "./preview.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
@@ -99,6 +99,9 @@ function generatePointerVanilla(state, importFrom) {
   const perspective = Number(state.pointer?.perspective) || 900;
   const is3d = needs3d(state);
 
+  const hasNear = follow.some((f) => Object.values(f.props).some((p) => p.axis === "near"));
+  const radius = Number(state.pointer?.radius) || 120;
+
   const config = {};
   for (const f of follow) {
     const props = {};
@@ -124,6 +127,7 @@ function generatePointerVanilla(state, importFrom) {
     "//   x      pointer position, left to right",
     "//   y      pointer position, top to bottom",
     "//   enter  outside the element to over the element",
+    ...(hasNear ? ["//   near   far from the pointer to right under it, measured per item"] : []),
     `const follow = ${js(config)};`,
     "",
     "// Turn every range into a function: pointer value in, CSS value out.",
@@ -131,22 +135,51 @@ function generatePointerVanilla(state, importFrom) {
     "  selector,",
     "  props: Object.entries(props).map(([prop, config]) => {",
     "    const [axis, range] = Object.entries(config)[0];",
-    "    return { prop, axis, map: interpolate(axis === \"enter\" ? [0, 1] : [-1, 1], range) };",
+    "    return { prop, axis, map: interpolate(axis === \"x\" || axis === \"y\" ? [-1, 1] : [0, 1], range) };",
     "  }),",
     "}));",
     "",
     "const targets = (selector) => (selector === \":scope\" ? [root] : root.querySelectorAll(selector));",
     "",
-    "function update(pointer, transition = spring) {",
-    "  for (const { selector, props } of mappers) {",
-    "    const values = {};",
-    "    for (const { prop, axis, map } of props) values[prop] = map(pointer[axis]);",
-    is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
-    "    animate(targets(selector), values, transition);",
-    "  }",
-    "}",
+    ...(hasNear
+      ? [
+          `const radius = ${radius}; // how close (px) the pointer has to be to an item's centre`,
+          "",
+          "// 1 right on top of an item, 0 at `radius` px away or further.",
+          "function near(item, x) {",
+          "  const box = item.getBoundingClientRect();",
+          "  return Math.max(0, 1 - Math.abs(x - (box.left + box.width / 2)) / radius);",
+          "}",
+          "",
+          "function update(pointer, transition = spring) {",
+          "  for (const { selector, props } of mappers) {",
+          "    const values = {};",
+          "    for (const { prop, axis, map } of props) if (axis !== \"near\") values[prop] = map(pointer[axis]);",
+          is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
+          "    if (Object.keys(values).length) animate(targets(selector), values, transition);",
+          "",
+          "    // Items that react to proximity each get their own value.",
+          "    const nearProps = props.filter((prop) => prop.axis === \"near\");",
+          "    if (!nearProps.length) continue;",
+          "    for (const item of targets(selector)) {",
+          "      const level = near(item, pointer.px);",
+          "      animate(item, Object.fromEntries(nearProps.map(({ prop, map }) => [prop, map(level)])), transition);",
+          "    }",
+          "  }",
+          "}",
+        ]
+      : [
+          "function update(pointer, transition = spring) {",
+          "  for (const { selector, props } of mappers) {",
+          "    const values = {};",
+          "    for (const { prop, axis, map } of props) values[prop] = map(pointer[axis]);",
+          is3d ? `    if (selector === ":scope") values.transformPerspective = perspective;` : "",
+          "    animate(targets(selector), values, transition);",
+          "  }",
+          "}",
+        ]),
     "",
-    "const rest = { x: 0, y: 0, enter: 0 };",
+    hasNear ? "const rest = { x: 0, y: 0, enter: 0, px: -Infinity }; // px: pointer position in the viewport" : "const rest = { x: 0, y: 0, enter: 0 };",
     "const clamp = (value) => Math.max(-1, Math.min(1, value));",
     "",
     "update(rest, { duration: 0 }); // start at rest",
@@ -165,6 +198,7 @@ function generatePointerVanilla(state, importFrom) {
       "      x: clamp((event.clientX / innerWidth) * 2 - 1),",
       "      y: clamp((event.clientY / innerHeight) * 2 - 1),",
       "      enter: 1,",
+      ...(hasNear ? ["      px: event.clientX,"] : []),
       "    });",
       "  });",
       "});",
@@ -184,7 +218,7 @@ function generatePointerVanilla(state, importFrom) {
       "    const x = (event.clientX - box.left - box.width / 2) / (root.offsetWidth / 2);",
       "    const y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);",
       "    const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;",
-      "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });",
+      hasNear ? "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });" : "    if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });",
       "    else if (inside) update(rest);",
       "    inside = over;",
       "  });",
@@ -309,7 +343,11 @@ function generateComponentVanilla(state, importFrom) {
       break;
     case "load":
     default:
-      body.push("// Open as soon as this script runs.", "setOpen(true);");
+      if (transition.repeat === Infinity) {
+        body.push("// A loop that never stops: skip it for people who ask their system for less motion.", `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setOpen(true);`);
+      } else {
+        body.push("// Open as soon as this script runs.", "setOpen(true);");
+      }
   }
 
   return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body].join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
@@ -317,8 +355,54 @@ function generateComponentVanilla(state, importFrom) {
 
 /* --- Vanilla JS --------------------------------------------------------- */
 
+/** Text scramble: letters shuffle, then settle left to right into the real text. */
+function generateScrambleVanilla(state, importFrom) {
+  const trigger = effectiveTrigger(state);
+  const transition = buildTransition({ ...state, transition: { ...state.transition, type: "tween", infinite: false, repeat: 0 } }, { mode: "code", multi: false });
+  const imports = new Set(["animate"]);
+  const body = [
+    `const element = document.querySelector(".motion-target");`,
+    "const finalText = element.textContent;",
+    `const characters = ${js(scrambleChars(state))};`,
+    `const transition = ${js(transition)};`,
+    "",
+    "// Letters settle left to right; the ones still waiting keep shuffling.",
+    "function scramble() {",
+    "  animate(0, 1, {",
+    "    ...transition,",
+    "    onUpdate(progress) {",
+    "      const settled = Math.floor(progress * finalText.length);",
+    "      element.textContent = [...finalText]",
+    `        .map((char, i) => (i < settled || char === " " ? char : characters[Math.floor(Math.random() * characters.length)]))`,
+    `        .join("");`,
+    "    },",
+    "  });",
+    "}",
+    "",
+  ];
+  const run = [];
+  switch (trigger) {
+    case "hover":
+      imports.add("hover");
+      run.push("// Scramble whenever the pointer enters.", "hover(element, () => scramble());");
+      break;
+    case "toggle":
+      run.push("// Scramble on every click.", `element.addEventListener("click", scramble);`);
+      break;
+    case "inView":
+      imports.add("inView");
+      run.push("// Scramble when it scrolls into view.", `inView(element, () => scramble(), ${js({ amount: Number(state.inView.amount) })});`);
+      break;
+    default:
+      run.push("// Scramble as soon as this script runs.", "scramble();");
+  }
+  body.push("// Skip the effect for people who ask their system for less motion.", `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`, ...run.map((l) => `  ${l}`), "}");
+  return [`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body].join("\n");
+}
+
 export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
   if (isComponent(state.element.type)) return generateComponentVanilla(state, importFrom);
+  if (state.element.type === "scramble") return generateScrambleVanilla(state, importFrom);
   if (effectiveTrigger(state) === "pointer") return generatePointerVanilla(state, importFrom);
   const multi = isMulti(state);
   const keyframes = buildKeyframes(state);
@@ -410,7 +494,11 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
     }
     case "load":
     default:
-      body.push("// Plays as soon as this script runs.", `animate(${js(selector)}, keyframes, transition);`);
+      if (transition.repeat === Infinity) {
+        body.push("// A loop that never stops: skip it for people who ask their system for less motion.", `if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {`, `  animate(${js(selector)}, keyframes, transition);`, "}");
+      } else {
+        body.push("// Plays as soon as this script runs.", `animate(${js(selector)}, keyframes, transition);`);
+      }
   }
 
   lines.push(`import { ${[...imports].join(", ")} } from ${importFrom};`, "", ...body);
@@ -422,7 +510,7 @@ export function generateVanilla(state, { importFrom = '"motion"' } = {}) {
 export function generateCss(state) {
   const el = state.element;
   // "Auto" text colour: inherit the page's colour for headings, white on accent backgrounds.
-  const textColor = el.textColor === "auto" ? (el.type === "text" ? "inherit" : "#ffffff") : el.textColor;
+  const textColor = el.textColor === "auto" ? (el.type === "text" || el.type === "scramble" ? "inherit" : "#ffffff") : el.textColor;
   const has3d = state.tracks.some((t) => t.prop === "rotateX" || t.prop === "rotateY");
   const css = [];
   if (isComponent(el.type)) {
@@ -468,6 +556,7 @@ export function generateCss(state) {
 }`);
       break;
     case "text":
+    case "scramble":
       css.push(`.demo-text {
   font: 700 clamp(28px, 5vw, 56px) / 1.15 system-ui, sans-serif;
   color: ${textColor};

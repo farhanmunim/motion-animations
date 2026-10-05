@@ -3,7 +3,8 @@
  * real motion.dev functions so the preview behaves exactly like the export.
  */
 import { animate, hover, press, inView, scroll, stagger, interpolate } from "motion";
-import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d } from "./compile.js";
+import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleFrame } from "./compile.js";
+import { resolveEase } from "./props.js";
 import { getComponent, isComponent, componentCss } from "./components.js";
 
 let cleanup = [];
@@ -64,6 +65,8 @@ export function elementMarkup(el, { forExport = false } = {}) {
   switch (el.type) {
     case "circle":
       return `<div class="motion-target demo-shape demo-circle"></div>`;
+    case "scramble":
+      return `<h1 class="motion-target demo-text" aria-label="${text}">${text}</h1>`;
     case "text":
       if (el.split && el.split !== "none") {
         return `<h1 class="motion-target demo-text demo-split" aria-label="${text}">${splitMarkup(el.text, el.split, el.mask)}</h1>`;
@@ -112,7 +115,7 @@ function addItemClass(html) {
 
 /** CSS custom properties that drive the demo element's look. */
 export function elementCss(el) {
-  const text = el.textColor === "auto" ? (el.type === "text" ? "var(--text-1)" : "#ffffff") : el.textColor;
+  const text = el.textColor === "auto" ? (el.type === "text" || el.type === "scramble" ? "var(--text-1)" : "#ffffff") : el.textColor;
   return `--demo-color:${el.color};--demo-text:${text};--demo-radius:${el.radius}px;--demo-size:${el.size}px;`;
 }
 
@@ -143,6 +146,16 @@ export function renderPreview(stage, state, setStatus) {
   const trigger = effectiveTrigger(state);
   const scrolly = trigger === "inView" || trigger === "scroll";
   stage.classList.toggle("scrolly", scrolly);
+  // A scrollable area has to be reachable with the keyboard, and needs a name.
+  if (scrolly) {
+    stage.tabIndex = 0;
+    stage.setAttribute("role", "region");
+    stage.setAttribute("aria-label", "Scrollable preview");
+  } else {
+    stage.tabIndex = -1;
+    stage.removeAttribute("role");
+    stage.removeAttribute("aria-label");
+  }
   // Pointer-following elements bring their own perspective, like the export does.
   stage.classList.toggle("flat", trigger === "pointer");
 
@@ -156,6 +169,8 @@ export function renderPreview(stage, state, setStatus) {
   // The root: the component / element, or the list / grid wrapper.
   const root = stage.querySelector(".motion-target") || stage.querySelector(".stage-inner")?.lastElementChild;
   if (!root) return () => {};
+
+  if (el.type === "scramble") return renderScramble(stage, root, state, setStatus);
 
   const plan = buildPlan(state)
     .map((entry) => ({ ...entry, els: resolveEntry(stage, root, state, entry) }))
@@ -276,20 +291,34 @@ export function renderPreview(stage, state, setStatus) {
       const perspective = Number(state.pointer?.perspective) || 900;
       const is3d = needs3d(state);
       const scene = state.pointer?.area === "scene";
-      const rest = { x: 0, y: 0, enter: 0 };
+      const radius = Number(state.pointer?.radius) || 120;
+      const rest = { x: 0, y: 0, enter: 0, px: -Infinity };
       const mappers = follow.map((f) => ({
         els: f.els,
         isRoot: f.selector === null,
-        props: Object.entries(f.props).map(([prop, p]) => ({ prop, axis: p.axis, map: interpolate(p.axis === "enter" ? [0, 1] : [-1, 1], p.range) })),
+        props: Object.entries(f.props).map(([prop, p]) => ({ prop, axis: p.axis, map: interpolate(p.axis === "x" || p.axis === "y" ? [-1, 1] : [0, 1], p.range) })),
       }));
+      // "near": how close the pointer is to an item's own centre, 1 on top of it, 0 at `radius` px away.
+      const nearOf = (target, px) => {
+        const box = target.getBoundingClientRect();
+        return Math.max(0, 1 - Math.abs(px - (box.left + box.width / 2)) / radius);
+      };
       const update = (pointer, transition = spring) => {
+        const running = [];
         for (const m of mappers) {
           const values = {};
-          for (const { prop, axis, map } of m.props) values[prop] = map(pointer[axis]);
+          for (const { prop, axis, map } of m.props) if (axis !== "near") values[prop] = map(pointer[axis]);
           if (is3d && m.isRoot) values.transformPerspective = perspective;
-          m.anim = animate(m.els, values, transition);
+          if (Object.keys(values).length) running.push(animate(m.els, values, transition));
+          const near = m.props.filter((p) => p.axis === "near");
+          if (near.length) {
+            for (const target of m.els) {
+              const level = nearOf(target, pointer.px);
+              running.push(animate(target, Object.fromEntries(near.map(({ prop, map }) => [prop, map(level)])), transition));
+            }
+          }
         }
-        activeAnimations = mappers.map((m) => m.anim);
+        activeAnimations = running;
       };
       if (is3d) root.style.transformStyle = "preserve-3d";
       update(rest, { duration: 0 });
@@ -307,7 +336,10 @@ export function renderPreview(stage, state, setStatus) {
           const p = Math.min(1, (now - start) / 2400);
           const angle = p * Math.PI * 2 - Math.PI / 2;
           const reach = 0.85 * Math.sin(Math.PI * p);
-          update({ x: Math.cos(angle) * reach, y: Math.sin(angle) * reach, enter: 1 });
+          const x = Math.cos(angle) * reach;
+          const box = (scene ? stage : root).getBoundingClientRect();
+          const width = scene ? box.width : root.offsetWidth;
+          update({ x, y: Math.sin(angle) * reach, enter: 1, px: box.left + ((x + 1) / 2) * width });
           if (p < 1) demoFrame = requestAnimationFrame(tick);
           else update(rest);
         };
@@ -336,7 +368,7 @@ export function renderPreview(stage, state, setStatus) {
             y = (event.clientY - box.top - box.height / 2) / (root.offsetHeight / 2);
           }
           const over = Math.abs(x) <= 1 && Math.abs(y) <= 1;
-          if (over) update({ x: clamp(x), y: clamp(y), enter: 1 });
+          if (over) update({ x: clamp(x), y: clamp(y), enter: 1, px: event.clientX });
           else if (inside) update(rest);
           inside = over;
         });
@@ -375,4 +407,45 @@ export function renderPreview(stage, state, setStatus) {
       return play;
     }
   }
+}
+
+/** Text scramble: letters shuffle, then settle left to right into the real text. */
+function renderScramble(stage, root, state, setStatus) {
+  const trigger = effectiveTrigger(state);
+  const finalText = state.element.text || "Hello";
+  const chars = scrambleChars(state);
+  const t = state.transition;
+  let animation;
+  const run = () => {
+    animation?.stop();
+    animation = animate(0, 1, {
+      duration: Math.max(0.05, Number(t.duration) || 1),
+      delay: Number(t.delay) || 0,
+      ease: resolveEase(t),
+      onUpdate: (progress) => {
+        root.textContent = scrambleFrame(finalText, progress, chars);
+      },
+    });
+    activeAnimations = [animation];
+  };
+  cleanup.push(() => animation?.stop());
+  switch (trigger) {
+    case "hover":
+      setStatus("Hover the text to scramble it");
+      cleanup.push(hover(root, run));
+      break;
+    case "toggle":
+      setStatus("Click the text to scramble it again");
+      root.addEventListener("click", run);
+      cleanup.push(() => root.removeEventListener("click", run));
+      break;
+    case "inView":
+      setStatus("Scroll the preview to bring the text into view");
+      cleanup.push(inView(root, () => run(), { root: stage, amount: state.inView.amount }));
+      break;
+    default:
+      setStatus("Playing on load");
+      run();
+  }
+  return run;
 }
