@@ -14,8 +14,14 @@ export const SITE = {
   name: "Motion Studio",
   lang: "en-GB",
   locale: "en_GB",
-  author: "Farhan",
-  authorUrl: "https://farhan.app",
+  /** Every farhan.app project carries this suffix in its title and credits Farhan in its description. */
+  suffix: "farhan.app",
+  author: "farhan.app",
+  developer: "Farhan Munim",
+  developerUrl: "https://farhan.app",
+  /** The logo mark, as shown in the app's header. Used as the inline favicon. */
+  iconSvg:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#18181b"/><path d="M7 24 12 8l5 10 4-7 4 13" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   robots: "index, follow, max-image-preview:large",
   themeDark: "#0e0e13",
   themeLight: "#f4f4f8",
@@ -31,18 +37,16 @@ export const SITE = {
 export const ROUTES = {
   quick: {
     path: "/",
-    title: "Motion Studio – Visual animation builder for motion.dev",
-    description: "Design motion.dev animations visually, preview them live and export copy-paste JavaScript for any HTML page. Free, no sign-up.",
+    name: "Motion Studio",
+    summary: "Design motion.dev animations visually and export copy-paste JavaScript for any HTML page",
     ogDescription: "Design motion.dev animations visually and export ready-to-paste JavaScript. Presets, UI components, live preview, no build step required.",
-    appName: "Motion Studio",
     appDescription: "Visually design motion.dev animations, preview them live and export copy-paste JavaScript for any HTML page.",
   },
   timeline: {
     path: "/v2",
-    title: "Motion Studio – Timeline (v2): choreograph elements on one timeline",
-    description: "Choreograph several elements on one visual timeline. Drag blocks to set timing, scrub the playhead, then export a single motion.dev sequence.",
+    name: "Motion Studio Timeline",
+    summary: "Choreograph several elements on one visual timeline and export a single motion.dev sequence",
     ogDescription: "Choreograph a hero, cards and a nav bar on one timeline and export a single motion.dev sequence as plain JavaScript.",
-    appName: "Motion Studio Timeline",
     appDescription: "Choreograph several elements on one visual timeline and export a single motion.dev sequence as copy-paste JavaScript.",
   },
 };
@@ -54,6 +58,8 @@ export function routeValues(mode) {
   const r = ROUTES[mode];
   return {
     ...r,
+    title: `${r.name} — ${SITE.suffix}`,
+    description: `${r.summary}. Built by Farhan — ${SITE.suffix}`,
     url: SITE.url + r.path,
     image: SITE.url + SITE.image.path,
     imageAlt: SITE.image.alt,
@@ -66,7 +72,7 @@ export function jsonLd(mode) {
   return {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    name: v.appName,
+    name: v.name,
     url: v.url,
     description: v.appDescription,
     applicationCategory: "DesignApplication",
@@ -75,7 +81,7 @@ export function jsonLd(mode) {
     inLanguage: SITE.lang,
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
-    author: { "@type": "Person", name: SITE.author, url: SITE.authorUrl },
+    author: { "@type": "Person", name: SITE.developer, url: SITE.developerUrl },
   };
 }
 
@@ -89,11 +95,14 @@ export function headTags(mode) {
     meta("name", "author", SITE.author),
     meta("name", "application-name", SITE.name),
     meta("name", "robots", SITE.robots),
+    `    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,${encodeURIComponent(SITE.iconSvg).replace(/'/g, "%27")}" />`,
+    `    <link rel="icon" href="/favicon.ico" sizes="48x48" />`,
+    `    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />`,
     `    <meta name="theme-color" content="${SITE.themeDark}" media="(prefers-color-scheme: dark)" />`,
     `    <meta name="theme-color" content="${SITE.themeLight}" media="(prefers-color-scheme: light)" />`,
     `    <link rel="canonical" href="${v.url}" />`,
     meta("property", "og:type", "website"),
-    meta("property", "og:site_name", SITE.name),
+    meta("property", "og:site_name", v.name),
     meta("property", "og:locale", SITE.locale),
     meta("property", "og:title", v.title),
     meta("property", "og:description", v.ogDescription),
@@ -103,9 +112,9 @@ export function headTags(mode) {
     meta("property", "og:image:width", SITE.image.width),
     meta("property", "og:image:height", SITE.image.height),
     meta("property", "og:image:alt", v.imageAlt),
-    meta("name", "twitter:card", "summary_large_image"),
+    meta("name", "twitter:card", "summary"),
     meta("name", "twitter:title", v.title),
-    meta("name", "twitter:description", v.ogDescription),
+    meta("name", "twitter:description", v.description),
     meta("name", "twitter:image", v.image),
     meta("name", "twitter:image:alt", v.imageAlt),
     `    <script type="application/ld+json">${JSON.stringify(jsonLd(mode))}</script>`,
@@ -121,7 +130,7 @@ export const META_TARGETS = [
   ['meta[property="og:title"]', "content", "title"],
   ['meta[property="og:description"]', "content", "ogDescription"],
   ['meta[name="twitter:title"]', "content", "title"],
-  ['meta[name="twitter:description"]', "content", "ogDescription"],
+  ['meta[name="twitter:description"]', "content", "description"],
 ];
 
 /** The sitemap, generated from the same routes. */

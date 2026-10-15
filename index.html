@@ -6,9 +6,6 @@
     <meta name="color-scheme" content="dark light" />
     <!--seo:start-->
     <!--seo:end-->
-    <link rel="icon" href="/favicon.ico" sizes="48x48" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -93,13 +90,15 @@
       </main>
 
       <footer class="app-footer">
-        <a href="https://motion.dev/docs" target="_blank" rel="noopener">motion.dev docs<span class="visually-hidden"> (opens in a new tab)</span></a>
+        <button type="button" class="footer-link" id="btn-about">About</button>
         <span class="footer-sep" aria-hidden="true"></span>
-        <button type="button" class="footer-link" id="btn-shortcuts">Shortcuts</button>
+        <button type="button" class="footer-link" id="btn-privacy">Privacy</button>
+        <span class="footer-sep" aria-hidden="true"></span>
+        <a href="https://github.com/farhanmunim/motion-animations" target="_blank" rel="noopener">Source<span class="visually-hidden"> (opens in a new tab)</span></a>
         <span class="footer-spacer"></span>
-        <span class="footer-meta">Saved locally, nothing uploaded</span>
+        <span class="footer-meta">Runs entirely in your browser</span>
         <span class="footer-sep" aria-hidden="true"></span>
-        <span>Built by <a href="https://farhan.app" target="_blank" rel="noopener">Farhan<span class="visually-hidden"> (opens in a new tab)</span></a></span>
+        <span class="footer-credit">Built by <a href="https://farhan.app" target="_blank" rel="noopener">Farhan<span class="visually-hidden"> (opens in a new tab)</span></a></span>
       </footer>
 
       <nav class="mobile-nav" aria-label="Sections">
@@ -129,6 +128,33 @@
           <button type="button" class="btn ghost icon" id="btn-close-export" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body" id="export-body"></div>
+      </div>
+    </div>
+
+    <div class="app-modal-backdrop hidden" id="about-modal">
+      <div class="app-modal narrow" role="dialog" aria-modal="true" aria-labelledby="about-title">
+        <div class="modal-head">
+          <h2 id="about-title">About Motion Studio</h2>
+          <button type="button" class="btn ghost icon" id="btn-close-about" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body about">
+          <p class="about-lead">Design motion.dev animations by eye.</p>
+          <p>Motion Studio is a free visual builder for <a href="https://motion.dev/docs" target="_blank" rel="noopener">motion.dev<span class="visually-hidden"> (opens in a new tab)</span></a> animations, for developers and designers who want to tune an effect and copy plain JavaScript into any HTML page. Press <kbd>?</kbd> for keyboard shortcuts.</p>
+
+          <h3 id="about-privacy" tabindex="-1">Privacy</h3>
+          <p>Your designs are saved only in this browser, and in the share link you choose to copy. Nothing is uploaded and there are no accounts. Exported code loads the motion library from the jsDelivr CDN when you run it, and the app loads its fonts from Google Fonts.</p>
+          <p>This site uses Umami for analytics. It collects aggregate, cookieless page-view statistics only: no personal data and no cross-site tracking.</p>
+
+          <h3>Source</h3>
+          <p>The code is public on <a href="https://github.com/farhanmunim/motion-animations" target="_blank" rel="noopener">GitHub<span class="visually-hidden"> (opens in a new tab)</span></a>.</p>
+
+          <h3>Developer</h3>
+          <p><a href="https://farhan.app" target="_blank" rel="noopener">Farhan Munim<span class="visually-hidden"> (opens in a new tab)</span></a> &middot; <a href="https://farhan.app" target="_blank" rel="noopener">farhan.app<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+
+          <h3>Support</h3>
+          <p>Support the development of this free tool.</p>
+          <p><a class="btn" href="https://buymeacoffee.com/farhan.app" target="_blank" rel="noopener">&#9749; Buy me a coffee<span class="visually-hidden"> (opens in a new tab)</span></a></p>
+        </div>
       </div>
     </div>
 

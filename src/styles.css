@@ -1466,8 +1466,11 @@ kbd {
 }
 
 @media (max-width: 860px) {
+  :root {
+    --footer-h: 48px;
+  }
   #app {
-    grid-template-rows: var(--topbar-h) 1fr var(--mobile-nav-h) var(--footer-h);
+    grid-template-rows: var(--topbar-h) 1fr auto var(--mobile-nav-h);
   }
   .workspace {
     grid-template-columns: 1fr;
@@ -1522,10 +1525,15 @@ kbd {
   .tabs {
     display: none;
   }
-  .footer-meta,
-  .footer-meta + .footer-sep,
-  .footer-link,
-  .footer-link + .footer-sep {
+  /* The footer line wraps onto a second row instead of being cut, and sits below the bottom nav. */
+  .app-footer {
+    min-height: var(--footer-h);
+    flex-wrap: wrap;
+    gap: 0 var(--sp-4);
+    padding: var(--sp-1) var(--sp-5);
+    row-gap: 0;
+  }
+  .footer-spacer {
     display: none;
   }
   .brand-name {
@@ -1964,4 +1972,37 @@ body[data-mode="timeline"] .stage-wrap {
 }
 .static-intro a {
   color: var(--text-1);
+}
+
+/* ---------- About dialog ---------- */
+.about p {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+}
+.about .about-lead {
+  margin-top: var(--sp-4);
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.about h3 {
+  margin: var(--sp-5) 0 var(--sp-2);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  scroll-margin-top: var(--sp-2);
+}
+.about h3:focus {
+  outline: none;
+}
+.about a:not(.btn) {
+  color: var(--text-1);
+}
+.about .btn {
+  display: inline-flex;
+  text-decoration: none;
 }

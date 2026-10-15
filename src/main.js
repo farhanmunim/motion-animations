@@ -237,12 +237,24 @@ function dialog(backdrop, openBtn, closeBtn, onOpen) {
 }
 const exportModal = $("#export-modal");
 const exportDialog = dialog(exportModal, $("#btn-export"), $("#btn-close-export"), () => active().renderExport($("#export-body")));
-const shortcutsDialog = dialog($("#shortcuts-modal"), $("#btn-shortcuts"), $("#btn-close-shortcuts"));
+const aboutDialog = dialog($("#about-modal"), $("#btn-about"), $("#btn-close-about"), () => {
+  $("#about-modal .modal-body").scrollTop = 0;
+});
+// Privacy opens the same dialog and scrolls to its own section.
+$("#btn-privacy").addEventListener("click", () => {
+  aboutDialog.open();
+  const heading = $("#about-privacy");
+  heading.scrollIntoView({ block: "start" });
+  heading.focus({ preventScroll: true });
+});
+const shortcutsDialog = dialog($("#shortcuts-modal"), document.createElement("button"), $("#btn-close-shortcuts"));
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     exportDialog.close();
+    aboutDialog.close();
     shortcutsDialog.close();
   }
+  if (e.key === "?" && !isTyping(e) && !document.querySelector(".app-modal-backdrop:not(.hidden)")) shortcutsDialog.open();
   if ((e.metaKey || e.ctrlKey) && e.key === "z" && !isTyping(e)) {
     e.preventDefault();
     active().undo();
