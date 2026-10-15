@@ -114,7 +114,7 @@ export function renderTimelineDesign(container, store, { onToast }) {
   if (state.trigger === "scroll") {
     const edges = [
       { value: "start end", label: "Scene top meets viewport bottom" },
-      { value: "start center", label: "Scene top meets viewport center" },
+      { value: "start center", label: "Scene top meets viewport centre" },
       { value: "start start", label: "Scene top meets viewport top" },
       { value: "center center", label: "Scene center meets viewport center" },
       { value: "end end", label: "Scene bottom meets viewport bottom" },

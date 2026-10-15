@@ -1,35 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0e0e13" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f4f4f8" media="(prefers-color-scheme: light)" />
-    <title>Motion Studio – Visual animation builder for motion.dev</title>
-    <meta name="description" content="Design motion.dev animations visually, preview them live and export copy-paste JavaScript for any HTML page. Free, no sign-up." />
-    <meta name="author" content="Farhan" />
-    <meta name="application-name" content="Motion Studio" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href="https://motion.farhan.app/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Motion Studio" />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content="Motion Studio – Visual animation builder for motion.dev" />
-    <meta
-      property="og:description"
-      content="Design motion.dev animations visually and export ready-to-paste JavaScript. Presets, UI components, live preview, no build step required."
-    />
-    <meta property="og:url" content="https://motion.farhan.app/" />
-    <meta property="og:image" content="https://motion.farhan.app/og.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Motion Studio: visual animation builder for motion.dev" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Motion Studio – Visual animation builder for motion.dev" />
-    <meta name="twitter:description" content="Design motion.dev animations visually and export ready-to-paste JavaScript. Presets, UI components, live preview, no build step required." />
-    <meta name="twitter:image" content="https://motion.farhan.app/og.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--seo:start-->
+    <!--seo:end-->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,24 +16,10 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/styles.css" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Motion Studio",
-        "url": "https://motion.farhan.app/",
-        "description": "Visually design motion.dev animations, preview them live, and export copy-paste JavaScript for any HTML page.",
-        "applicationCategory": "DesignApplication",
-        "operatingSystem": "Any",
-        "browserRequirements": "Requires JavaScript",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "Farhan", "url": "https://farhan.app" }
-      }
-    </script>
     <!-- Umami analytics (motion.farhan.app) -->
     <script defer src="https://mochi.farhan.app/script.js" data-website-id="8d596468-94e5-45f4-879c-698006fc90dc"></script>
   </head>
-  <body>
+  <body data-mode="quick">
     <a class="skip-link" href="#main">Skip to main content</a>
     <div id="app">
       <header class="topbar">
@@ -71,12 +35,12 @@
           <button type="button" class="mode" data-mode="timeline" aria-pressed="false">Timeline <span class="mode-tag">v2</span></button>
         </div>
         <div class="topbar-actions">
-          <button class="btn ghost" id="btn-theme" title="Toggle light / dark theme" aria-label="Toggle theme">
+          <button type="button" class="btn ghost" id="btn-theme" title="Toggle light / dark theme" aria-label="Toggle theme">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
           </button>
-          <button class="btn ghost" id="btn-reset" title="Start from a blank animation">Reset</button>
-          <button class="btn" id="btn-share" title="Copy a link to this exact animation">Share</button>
-          <button class="btn primary" id="btn-export" aria-label="Export code">
+          <button type="button" class="btn ghost" id="btn-reset" title="Start from a blank animation">Reset</button>
+          <button type="button" class="btn" id="btn-share" title="Copy a link to this exact animation">Share</button>
+          <button type="button" class="btn primary" id="btn-export" aria-label="Export code">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>
             <span class="btn-label">Export code</span>
           </button>
@@ -89,8 +53,8 @@
             <h2 id="library-title">Library</h2>
             <p class="hint">Pick one to edit, or copy its code as is.</p>
           </div>
-          <div class="preset-list q-only" id="preset-list"></div>
-          <div class="preset-list t-only" id="t-library"></div>
+          <div class="preset-list q-only" id="preset-list"><!--s:ql--><!--/s:ql--></div>
+          <div class="preset-list t-only" id="t-library"><!--s:tl--><!--/s:tl--></div>
         </aside>
 
         <section class="stage-wrap" aria-labelledby="preview-title">
@@ -102,7 +66,7 @@
                 <input type="checkbox" id="auto-replay" checked />
                 <span>Auto-replay</span>
               </label>
-              <button class="btn" id="btn-replay">
+              <button type="button" class="btn" id="btn-replay">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
                 Replay
               </button>
@@ -110,7 +74,7 @@
           </div>
           <div class="stage q-only" id="stage" tabindex="-1"></div>
           <div class="stage t-only" id="t-stage" tabindex="-1"></div>
-          <div class="t-only" id="t-timeline" role="region" aria-label="Timeline"></div>
+          <section class="t-only" id="t-timeline" aria-label="Timeline"></section>
         </section>
 
         <aside class="panel inspector" id="inspector" aria-labelledby="inspector-title">
@@ -118,12 +82,12 @@
             <h2 id="inspector-title">Inspector</h2>
           </div>
           <div class="tabs" role="tablist" aria-label="Inspector sections">
-            <button class="tab active" data-tab="design" role="tab" id="tab-btn-design" aria-selected="true" aria-controls="tab-design">Design</button>
-            <button class="tab" data-tab="code" role="tab" id="tab-btn-code" aria-selected="false" aria-controls="tab-code" tabindex="-1">Code</button>
+            <button type="button" class="tab active" data-tab="design" role="tab" id="tab-btn-design" aria-selected="true" aria-controls="tab-design">Design</button>
+            <button type="button" class="tab" data-tab="code" role="tab" id="tab-btn-code" aria-selected="false" aria-controls="tab-code" tabindex="-1">Code</button>
           </div>
-          <div class="tab-panel q-only" id="tab-design" role="tabpanel" aria-labelledby="tab-btn-design"></div>
+          <div class="tab-panel q-only" id="tab-design" role="tabpanel" aria-labelledby="tab-btn-design"><!--s:qi--><!--/s:qi--></div>
           <div class="tab-panel q-only hidden" id="tab-code" role="tabpanel" aria-labelledby="tab-btn-code"></div>
-          <div class="tab-panel t-only" id="t-design" role="tabpanel" aria-labelledby="tab-btn-design"></div>
+          <div class="tab-panel t-only" id="t-design" role="tabpanel" aria-labelledby="tab-btn-design"><!--s:ti--><!--/s:ti--></div>
           <div class="tab-panel t-only hidden" id="t-code" role="tabpanel" aria-labelledby="tab-btn-code"></div>
         </aside>
       </main>
@@ -162,7 +126,7 @@
       <div class="app-modal" role="dialog" aria-modal="true" aria-labelledby="export-title">
         <div class="modal-head">
           <h2 id="export-title">Export</h2>
-          <button class="btn ghost icon" id="btn-close-export" aria-label="Close">&times;</button>
+          <button type="button" class="btn ghost icon" id="btn-close-export" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body" id="export-body"></div>
       </div>
@@ -172,7 +136,7 @@
       <div class="app-modal narrow" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
         <div class="modal-head">
           <h2 id="shortcuts-title">Keyboard shortcuts</h2>
-          <button class="btn ghost icon" id="btn-close-shortcuts" aria-label="Close">&times;</button>
+          <button type="button" class="btn ghost icon" id="btn-close-shortcuts" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body">
           <dl class="shortcuts">

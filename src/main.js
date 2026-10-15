@@ -3,8 +3,7 @@ import { renderPreview } from "./preview.js";
 import { renderLibrary, renderDesign, renderCode, copy, isDirty } from "./ui.js";
 import { generateVanilla } from "./codegen.js";
 import { merge } from "./state.js";
-import { mountTimeline } from "./v2/index.js";
-import { META_TARGETS, routeValues } from "./seo.js";
+import { META_TARGETS, routeValues, jsonLd } from "./seo.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -132,7 +131,9 @@ const quickCtl = {
   renderExport: (container) => renderCode(container, store.get(), { onToast: toast, full: true }),
   undo: () => store.undo(),
 };
-const active = () => (document.body.dataset.mode === "timeline" ? timelineCtl : quickCtl);
+// Timeline mode is its own chunk: visitors who stay in Quick mode never download it.
+const noopCtl = { replay() {}, reset() {}, shareUrl: () => location.href, renderExport() {}, undo() {} };
+const active = () => (document.body.dataset.mode === "timeline" ? timelineCtl || noopCtl : quickCtl);
 
 /** Keep title, description, canonical and social tags in step with the route. */
 function syncHead(mode) {
@@ -143,6 +144,8 @@ function syncHead(mode) {
     if (attr) el.setAttribute(attr, v[key]);
     else el.textContent = v[key];
   }
+  const ld = document.head.querySelector('script[type="application/ld+json"]');
+  if (ld) ld.textContent = JSON.stringify(jsonLd(mode));
 }
 
 function setMode(mode) {
@@ -153,18 +156,21 @@ function setMode(mode) {
     b.setAttribute("aria-pressed", on ? "true" : "false");
   }
   if (mode === "timeline" && !timelineCtl) {
-    timelineCtl = mountTimeline({
-      library: $("#t-library"),
-      stage: $("#t-stage"),
-      timelineEl: $("#t-timeline"),
-      design: $("#t-design"),
-      code: $("#t-code"),
-      exportBody: $("#export-body"),
-      setStatus,
-      toast,
+    import("./v2/index.js").then(({ mountTimeline }) => {
+      if (timelineCtl || document.body.dataset.mode !== "timeline") return;
+      timelineCtl = mountTimeline({
+        library: $("#t-library"),
+        stage: $("#t-stage"),
+        timelineEl: $("#t-timeline"),
+        design: $("#t-design"),
+        code: $("#t-code"),
+        exportBody: $("#export-body"),
+        setStatus,
+        toast,
+      });
     });
   } else if (mode === "timeline") {
-    timelineCtl.refresh();
+    timelineCtl?.refresh();
   } else {
     schedulePreview(true);
   }

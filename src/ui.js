@@ -10,6 +10,7 @@ import { generateAll } from "./codegen.js";
 import { COMPONENTS, isComponent, partLabel } from "./components.js";
 import { merge, clone, DEFAULT_STATE } from "./state.js";
 import { thumbIcon } from "./thumbs.js";
+import { CATEGORIES, primaryCategory } from "./categories.js";
 
 /* --- Tiny DOM helper ------------------------------------------------------ */
 
@@ -168,17 +169,6 @@ export function section(title, subtitle, ...children) {
 
 /* --- Library sidebar -------------------------------------------------- */
 
-const CATEGORIES = [
-  { id: "component", label: "UI components", short: "Components", tag: "component" },
-  { id: "entrance", label: "Entrances", short: "Entrances", tag: "entrance" },
-  { id: "text", label: "Text", short: "Text", tag: "text" },
-  { id: "multiple", label: "Lists & grids", short: "Lists", tag: "multiple" },
-  { id: "interaction", label: "Pointer, hover & press", short: "Pointer", tag: "interaction" },
-  { id: "effect", label: "Effects", short: "Effects", tag: "effect" },
-  { id: "scroll", label: "Scroll", short: "Scroll", tag: "scroll" },
-  { id: "loop", label: "Loops & attention", short: "Loops", tag: "loop", extra: "attention" },
-];
-
 /** Thumbnail values are scaled down so the mini preview fits the card. */
 function thumbKeyframes(preset) {
   const st = merge(clone(DEFAULT_STATE), preset.state);
@@ -231,11 +221,6 @@ function thumbMarkup(preset) {
 
 const ICON_COPY = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;
 const ICON_EDIT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
-
-/** Stable per-preset category: the first tag that has a category. */
-function primaryCategory(preset) {
-  return CATEGORIES.find((c) => preset.tags.includes(c.tag) || (c.extra && preset.tags.includes(c.extra)))?.id || "entrance";
-}
 
 let libraryFilter = "all";
 let collapsed = new Set();
@@ -472,7 +457,7 @@ function renderElementSection(state, set) {
   if (isComponent(el.type)) {
     kids.push(
       h("p", { class: "hint" }, "A working component with real markup. Each part (bars, panel, items...) can be animated on its own in the Animate section below."),
-      colorField({ label: "Accent color", value: el.color, onInput: (v) => set({ element: { color: v } }) }),
+      colorField({ label: "Accent colour", value: el.color, onInput: (v) => set({ element: { color: v } }) }),
       colorField({ label: "Text on accent", value: el.textColor, allowAuto: true, autoColor: "#ffffff", autoHint: "Auto means white text on the accent colour.", onInput: (v) => set({ element: { textColor: v } }) }),
       numberField({ label: "Corner radius", value: el.radius, min: 0, max: 40, unit: "px", onInput: (v) => set({ element: { radius: v } }) }),
     );
@@ -524,10 +509,10 @@ function renderElementSection(state, set) {
     );
   }
   if (el.type !== "custom" && el.type !== "text" && el.type !== "scramble") {
-    kids.push(colorField({ label: "Color", value: el.color, onInput: (v) => set({ element: { color: v } }) }));
+    kids.push(colorField({ label: "Colour", value: el.color, onInput: (v) => set({ element: { color: v } }) }));
   }
   if (el.type === "text" || el.type === "scramble" || el.type === "button" || el.type === "list" || el.type === "grid") {
-    kids.push(colorField({ label: "Text color", value: el.textColor, allowAuto: true, onInput: (v) => set({ element: { textColor: v } }) }));
+    kids.push(colorField({ label: "Text colour", value: el.textColor, allowAuto: true, onInput: (v) => set({ element: { textColor: v } }) }));
   }
   if (el.type === "box" || el.type === "circle") {
     kids.push(numberField({ label: "Size", value: el.size, min: 20, max: 320, unit: "px", onInput: (v) => set({ element: { size: v } }) }));
@@ -667,11 +652,11 @@ function renderTriggerSection(state, set) {
   if (trigger === "scroll") {
     const edges = [
       { value: "start end", label: "Element top meets viewport bottom" },
-      { value: "start center", label: "Element top meets viewport center" },
+      { value: "start center", label: "Element top meets viewport centre" },
       { value: "start start", label: "Element top meets viewport top" },
       { value: "center center", label: "Element center meets viewport center" },
       { value: "end end", label: "Element bottom meets viewport bottom" },
-      { value: "end center", label: "Element bottom meets viewport center" },
+      { value: "end center", label: "Element bottom meets viewport centre" },
       { value: "end start", label: "Element bottom meets viewport top" },
     ];
     kids.push(
@@ -1115,7 +1100,7 @@ function renderTimingSection(state, set) {
           value: stg.from,
           options: [
             { value: "first", label: "First element" },
-            { value: "center", label: "Center" },
+            { value: "center", label: "Centre" },
             { value: "last", label: "Last element" },
           ],
           onChange: (v) => set({ stagger: { from: v } }),

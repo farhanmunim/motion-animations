@@ -183,7 +183,7 @@ export const PRESETS = [
   },
   {
     id: "color-shift",
-    name: "Color shift (loop)",
+    name: "Colour shift (loop)",
     emoji: "🎨",
     tags: ["loop"],
     state: {
@@ -310,7 +310,7 @@ export const PRESETS = [
   },
   {
     id: "stagger-pop",
-    name: "Stagger pop from center",
+    name: "Stagger pop from centre",
     emoji: "✨",
     tags: ["entrance"],
     state: {
@@ -386,7 +386,7 @@ export const PRESETS = [
   },
   {
     id: "letters-scale",
-    name: "Letters from center",
+    name: "Letters from centre",
     emoji: "🔠",
     tags: ["text"],
     state: {
@@ -537,7 +537,7 @@ export const PRESETS = [
     tags: ["text", "loop"],
     state: {
       trigger: "load",
-      element: { type: "text", text: "Colorful", split: "chars" },
+      element: { type: "text", text: "Colourful", split: "chars" },
       tracks: [
         { prop: "color", values: ["#8b5cf6", "#ec4899", "#f59e0b", "#22c55e", "#8b5cf6"] },
         { prop: "scale", values: [1, 1.15, 1, 1, 1] },
@@ -596,7 +596,7 @@ export const PRESETS = [
   },
   {
     id: "grid-ripple",
-    name: "Grid ripple from center",
+    name: "Grid ripple from centre",
     emoji: "🌊",
     tags: ["multiple", "loop"],
     state: {

@@ -28,7 +28,7 @@ export const PROPS = {
 
   opacity: { label: "Opacity", group: "Appearance", kind: "number", unit: "", min: 0, max: 1, step: 0.01, def: 1 },
   backgroundColor: { label: "Background", group: "Appearance", kind: "color", def: "#7c3aed" },
-  color: { label: "Text color", group: "Appearance", kind: "color", def: "#ffffff" },
+  color: { label: "Text colour", group: "Appearance", kind: "color", def: "#ffffff" },
   borderRadius: {
     label: "Corner radius",
     group: "Appearance",

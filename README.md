@@ -33,7 +33,10 @@ Every library entry is held to the guidance in motion.dev's [performance guide](
 
 ## SEO and accessibility
 
-- Each route has its own title, description, canonical URL and social tags. `/v2` is emitted at build time as `v2.html` (see `vite.config.js` and `src/seo.js`), so crawlers that don't run JavaScript see the right metadata. Unknown URLs return a real 404 (`public/404.html`).
+- **One source for metadata.** `src/seo.js` holds the site defaults (name, language `en-GB`, robots, theme colours, 1200×630 `og.png`) and the per-page values (title, description, social text). Pages override the defaults; nothing is repeated by hand in HTML.
+- **Complete HTML before JavaScript.** At build time `vite.config.js` writes the head (title, description, canonical, Open Graph, Twitter/X cards, JSON-LD `WebApplication`) and the library list and intro text into the page, so crawlers and link previews see real content. The app replaces that content as soon as it starts.
+- **Real pages.** `/` is `index.html`; `/v2` is emitted as `v2.html` with its own metadata. `sitemap.xml` is generated from the same routes with a `lastmod`. Unknown URLs return a genuine 404 (`public/404.html`, noindex). The Timeline code is a separate chunk, loaded only in Timeline mode.
+- **Icons and caching.** `favicon.ico`, `favicon.svg` and the Apple touch icon are linked in the head; `public/_headers` gives hashed assets a one-year immutable cache and the images and icons a week.
 - Semantic landmarks (`header`, `main`, `aside`, `footer`, `nav`), one `h1`, an ordered heading outline, a skip link, and a `noscript` fallback.
 - Keyboard: every control is reachable, dialogs trap focus, make the page behind them inert and return focus on close.
 - Screen readers: toggle groups use `aria-pressed`, the library is a list of headed sections, status and toast messages are live regions.

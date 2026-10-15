@@ -1919,3 +1919,49 @@ body[data-mode="timeline"] .stage-wrap {
     scroll-behavior: auto !important;
   }
 }
+
+/* Pre-rendered content (see vite.config.js): shown until the app starts and replaces it. */
+.static-library section {
+  display: flex;
+  flex-direction: column;
+}
+.static-library h3 {
+  margin: var(--sp-4) 0 var(--sp-1);
+  padding: 0 var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.static-library ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.static-library li {
+  padding: 7px var(--sp-3);
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+.static-intro {
+  padding: var(--sp-5);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+}
+.static-intro h3 {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+}
+.static-intro p,
+.static-intro ol {
+  margin: 0 0 var(--sp-4);
+}
+.static-intro ol {
+  padding-left: 1.2em;
+}
+.static-intro a {
+  color: var(--text-1);
+}
