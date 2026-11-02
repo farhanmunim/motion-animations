@@ -3,14 +3,14 @@
  * Code views. Plain DOM, no framework, so it stays tiny and hackable.
  */
 import { animate } from "motion";
-import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase, themeTextHex } from "./props.js";
-import { PRESETS } from "./presets.js";
-import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes, isMulti, defaultAxis, needs3d, SCRAMBLE_TRIGGERS } from "./compile.js";
-import { generateAll } from "./codegen.js";
-import { COMPONENTS, isComponent, partLabel } from "./components.js";
-import { merge, clone, DEFAULT_STATE } from "./state.js";
-import { thumbIcon } from "./thumbs.js";
-import { CATEGORIES, primaryCategory } from "./categories.js";
+import { PROPS, PROP_GROUPS, EASINGS, EASING_CURVES, TRIGGERS, ELEMENT_TYPES, TEXT_SPLITS, propLabel, resolveEase, themeTextHex } from "../core/props.js";
+import { PRESETS } from "../library/presets.js";
+import { staggerApplies, buildKeyframes, buildPlan, effectiveTrigger, trackTimes, evenTimes, hasCustomTimes, isMulti, defaultAxis, needs3d, SCRAMBLE_TRIGGERS } from "../core/compile.js";
+import { generateAll } from "../core/codegen.js";
+import { COMPONENTS, isComponent, partLabel } from "../library/components.js";
+import { merge, clone, DEFAULT_STATE } from "../core/state.js";
+import { thumbIcon } from "../library/thumbs.js";
+import { CATEGORIES, primaryCategory } from "../core/categories.js";
 
 /* --- Tiny DOM helper ------------------------------------------------------ */
 

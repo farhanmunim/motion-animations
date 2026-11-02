@@ -1,0 +1,83 @@
+/* ---------- Footer ---------- */
+.app-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: 0 var(--sp-6);
+  border-top: 1px solid var(--border-c);
+  background: var(--surface);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  min-width: 0;
+}
+.app-footer a,
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--text-2);
+  text-decoration: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--t-fast);
+}
+.app-footer a:hover,
+.footer-link:hover {
+  color: var(--text-1);
+}
+.footer-sep {
+  width: 1px;
+  height: 12px;
+  background: var(--border-c);
+}
+.footer-spacer {
+  flex: 1;
+}
+.footer-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.footer-meta::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green-tx);
+  flex: none;
+}
+.app-footer > span:last-child a {
+  color: var(--text-1);
+  font-weight: 500;
+}
+.shortcuts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-4) var(--sp-6);
+  margin: var(--sp-4) 0 var(--sp-1);
+  align-items: baseline;
+}
+.shortcuts dt {
+  white-space: nowrap;
+}
+.shortcuts dd {
+  margin: 0;
+  color: var(--text-2);
+}
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-c);
+  background: var(--muted-bg);
+  color: var(--text-1);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}

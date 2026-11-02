@@ -33,10 +33,10 @@ Every library entry is held to the guidance in motion.dev's [performance guide](
 
 ## SEO and accessibility
 
-- **One source for metadata.** `src/seo.js` holds the site defaults (name, language `en-GB`, robots, theme colours, 1200×630 `og.png`) and the per-page values (title, description, social text). Pages override the defaults; nothing is repeated by hand in HTML.
+- **One source for metadata.** `src/core/seo.js` holds the site defaults (name, language `en-GB`, robots, theme colours, 1200×630 `og.png`) and the per-page values (title, description, social text). Pages override the defaults; nothing is repeated by hand in HTML.
 - **Complete HTML before JavaScript.** At build time `vite.config.js` writes the head (title, description, canonical, Open Graph, Twitter/X cards, JSON-LD `WebApplication`) and the library list and intro text into the page, so crawlers and link previews see real content. The app replaces that content as soon as it starts.
 - **Real pages.** `/` is `index.html`; `/v2` is emitted as `v2.html` with its own metadata. `sitemap.xml` is generated from the same routes with a `lastmod`. Unknown URLs return a genuine 404 (`public/404.html`, noindex). The Timeline code is a separate chunk, loaded only in Timeline mode.
-- **farhan.app branding.** Titles are `{App Name} — farhan.app`, descriptions end `Built by Farhan — farhan.app`, the author is `farhan.app` and the favicon is an inline SVG data URI of the logo (all in `src/seo.js`). The footer reads About · Privacy · Source · tagline · Built by Farhan; About and Privacy open one accessible dialog, which states the privacy position (local storage only, cookieless Umami page-view statistics).
+- **farhan.app branding.** Titles are `{App Name} — farhan.app`, descriptions end `Built by Farhan — farhan.app`, the author is `farhan.app` and the favicon is an inline SVG data URI of the logo (all in `src/core/seo.js`). The footer reads About · Privacy · Source · tagline · Built by Farhan; About and Privacy open one accessible dialog, which states the privacy position (local storage only, cookieless Umami page-view statistics).
 - **Icons and caching.** `favicon.ico` and the Apple touch icon back up the inline favicon; `public/_headers` gives hashed assets a one-year immutable cache and the images and icons a week.
 - Semantic landmarks (`header`, `main`, `aside`, `footer`, `nav`), one `h1`, an ordered heading outline, a skip link, and a `noscript` fallback.
 - Keyboard: every control is reachable, dialogs trap focus, make the page behind them inert and return focus on close.
@@ -96,22 +96,35 @@ The exported code targets elements by class: `.motion-target` for a single eleme
 ## Project layout
 
 ```
-index.html         Page shell
-src/main.js        Wires everything together
-src/state.js       Store, defaults, URL/localStorage persistence
-src/props.js       Registry of animatable properties, easings, triggers
-src/presets.js     The animation library
-src/components.js  UI components: markup, animatable parts, styles
-src/compile.js     Turns editor state into motion.dev keyframes/options
-src/preview.js     Live preview (uses motion.dev directly)
-src/codegen.js     Generates the exported code
-src/ui.js          Library sidebar, Design inspector, Code views
-src/styles.css     Styling and theming
-src/v2/            Timeline mode: scenes, store, sequence compiler,
-                   preview, timeline editor, inspector, export
+index.html                 Page shell
+vite.config.js             Build: per-route HTML, SEO tags, sitemap
+public/                    Static files (404 page, icons, robots, headers)
+src/main.js                Wires everything together
+src/core/                  Engine, no UI
+  state.js                 Store, defaults, URL/localStorage persistence
+  props.js                 Registry of animatable properties, easings, triggers
+  compile.js               Turns editor state into motion.dev keyframes/options
+  preview.js               Live preview (uses motion.dev directly)
+  codegen.js               Generates the exported code
+  categories.js            Library categories
+  seo.js                   Site and per-page metadata
+src/library/               Content
+  presets.js               The animation library
+  components.js            UI components: markup, animatable parts, styles
+  components-more.js       More components
+  components-kit.js        Component kit entries
+  thumbs.js                Library thumbnails
+src/ui/ui.js               Library sidebar, Design inspector, Code views
+src/timeline/              Timeline mode (loaded on demand): scenes, store,
+                           sequence compiler, preview, timeline editor,
+                           inspector, export
+src/styles/                main.css imports one file per area, in cascade order
+                           (tokens, base, layout, buttons, library, stage,
+                           inspector, code, footer, modal, toast, mobile,
+                           modes, timeline, about)
 ```
 
-Adding a preset is a matter of appending an entry to `src/presets.js`. Adding an animatable property means adding one entry to `PROPS` in `src/props.js`. Adding a component means one entry in `src/components.js` (markup, parts, CSS), one option in `ELEMENT_TYPES`, and a preset that gives it a default animation.
+Adding a preset is a matter of appending an entry to `src/library/presets.js`. Adding an animatable property means adding one entry to `PROPS` in `src/core/props.js`. Adding a component means one entry in `src/library/components.js` (markup, parts, CSS), one option in `ELEMENT_TYPES`, and a preset that gives it a default animation.
 
 ## Tech
 

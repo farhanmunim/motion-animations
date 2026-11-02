@@ -1,0 +1,218 @@
+/* ---------- Stage ---------- */
+.stage-wrap {
+  display: grid;
+  grid-template-rows: var(--h-panel-hd) 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+}
+.stage-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: 0 var(--sp-6);
+  border-bottom: 1px solid var(--border-c);
+  background: var(--surface);
+}
+.stage-status {
+  flex: 1;
+  font: var(--fs-sm) / 1 var(--font-mono);
+  color: var(--text-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.stage-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green-tx);
+  flex: none;
+}
+.stage-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+}
+.stage {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--stage-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+  display: grid;
+  place-items: center;
+  perspective: 1000px;
+  color: var(--text-1);
+}
+.stage.flat,
+.stage.flat .stage-inner {
+  perspective: none;
+  transform-style: flat;
+}
+.stage.scrolly {
+  overflow-y: auto;
+  display: block;
+  scroll-behavior: smooth;
+}
+.stage-inner {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-7);
+  transform-style: preserve-3d;
+}
+.stage.scrolly .stage-inner {
+  height: auto;
+  min-height: 60%;
+}
+.scroll-filler {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--sp-3);
+  color: var(--text-2);
+  font: 500 var(--fs-lg) var(--font-sans);
+  text-align: center;
+  padding: var(--sp-6);
+}
+.scroll-filler i {
+  font-style: normal;
+  font-size: 28px;
+  color: var(--text-3);
+  animation: nudge 1.4s ease-in-out infinite;
+}
+@keyframes nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+.scroll-filler.bottom {
+  height: 120%;
+}
+
+/* Demo elements. The exported CSS mirrors these. */
+.demo-shape {
+  width: var(--demo-size);
+  height: var(--demo-size);
+  background: var(--demo-color);
+  border-radius: var(--demo-radius);
+}
+.demo-circle {
+  border-radius: 50%;
+}
+.demo-text {
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--demo-text);
+  text-align: center;
+  max-width: 24ch;
+}
+.demo-split .motion-item,
+.demo-split .motion-word {
+  display: inline-block;
+  white-space: pre;
+}
+.motion-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.1em 0.04em 0.18em;
+  margin: -0.1em -0.04em -0.18em;
+}
+.demo-button {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--demo-text);
+  background: var(--demo-color);
+  border: 0;
+  border-radius: var(--demo-radius);
+  padding: 14px 28px;
+  cursor: pointer;
+}
+.demo-card {
+  width: 260px;
+  background: #1c1c22;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--demo-radius);
+  overflow: hidden;
+  text-align: left;
+}
+.demo-card-media {
+  height: 140px;
+  background: linear-gradient(135deg, var(--demo-color), #ec4899);
+}
+.demo-card-body {
+  padding: 16px;
+  display: grid;
+  gap: 6px;
+}
+.demo-card-body span {
+  font-size: 13px;
+  opacity: 0.7;
+}
+.motion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  width: 260px;
+}
+.demo-item {
+  background: var(--demo-color);
+  color: var(--demo-text);
+  padding: 14px 18px;
+  border-radius: var(--demo-radius);
+  font-weight: 600;
+}
+.motion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 260px;
+}
+.demo-tile {
+  aspect-ratio: 1;
+  background: var(--demo-color);
+  color: var(--demo-text);
+  border-radius: var(--demo-radius);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+.demo-custom {
+  display: contents;
+}
+.demo-custom.motion-target {
+  display: block;
+}
+.demo-shape,
+.demo-text,
+.demo-button,
+.demo-card,
+.demo-custom,
+.motion-item {
+  transform-style: preserve-3d;
+}
+/* Components use position: fixed for overlays; keep them inside the stage. */
+.stage .modal-backdrop,
+.stage .modal-dialog,
+.stage .drawer-backdrop,
+.stage .drawer-panel,
+.stage .toast-card {
+  position: absolute;
+}
+.part-label {
+  color: var(--text-3);
+  font-weight: 500;
+}

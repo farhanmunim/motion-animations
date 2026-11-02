@@ -8,9 +8,9 @@ import { createTimeline } from "./timeline.js";
 import { renderTimelineLibrary, renderTimelineDesign } from "./ui.js";
 import { generateTimelineAll } from "./codegen.js";
 import { sceneElements } from "./scenes.js";
-import { renderCode } from "../ui.js";
+import { renderCode } from "../ui/ui.js";
 import { TIMELINE_PRESETS } from "./presets.js";
-import { clone } from "../state.js";
+import { clone } from "../core/state.js";
 
 export function mountTimeline({ library, stage, timelineEl, design, code, exportBody, setStatus, toast }) {
   const first = TIMELINE_PRESETS[0];

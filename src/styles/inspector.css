@@ -1,0 +1,354 @@
+/* ---------- Inspector ---------- */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-c);
+  padding: 0 var(--sp-3);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: var(--h-tab);
+}
+.tab {
+  min-height: 28px;
+  padding: 0 var(--sp-5);
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--fs-md);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab:hover {
+  color: var(--text-1);
+}
+.tab.active {
+  color: var(--text-1);
+  font-weight: 600;
+  border-bottom-color: var(--text-1);
+}
+.tab-panel {
+  padding: 0 var(--sp-6) var(--sp-7);
+}
+.design-head {
+  padding: var(--sp-5) 0 var(--sp-4);
+  border-bottom: 1px solid var(--border-c);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.design-name {
+  width: 100%;
+  height: var(--h-input);
+  font-weight: 600;
+  font-size: var(--fs-lg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  padding: 0 var(--sp-3);
+  margin: 0 calc(-1 * var(--sp-3));
+  box-shadow: none;
+}
+.design-name:hover {
+  border-color: var(--border-c);
+}
+.origin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.inspector-section {
+  padding: var(--sp-5) 0 var(--sp-6);
+  border-bottom: 1px solid var(--border-c);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.inspector-section:last-child {
+  border-bottom: 0;
+}
+.section-head h3 {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+}
+.section-head .hint {
+  margin-top: var(--sp-1);
+}
+.subhead {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-top: var(--sp-2);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--h-input);
+}
+.field.stacked {
+  grid-template-columns: 1fr;
+  gap: var(--sp-1);
+}
+.field-label {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  display: flex;
+  gap: var(--sp-1);
+  align-items: baseline;
+}
+.field-label em {
+  font-style: normal;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.field-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.auto-toggle {
+  margin-left: var(--sp-1);
+  white-space: nowrap;
+}
+.field-controls.bezier {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.field-controls.bezier input {
+  width: 100%;
+  padding: 0 var(--sp-2);
+}
+input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--text-1);
+  height: 24px;
+}
+input[type="number"],
+input[type="text"],
+input[type="search"],
+select,
+textarea {
+  height: var(--h-input);
+  background: var(--surface);
+  border: 1px solid var(--border-c);
+  border-radius: var(--r-md);
+  padding: 0 var(--sp-3);
+  min-width: 0;
+  font-size: var(--fs-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+input[type="number"].num {
+  width: 66px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+select {
+  width: 100%;
+  cursor: pointer;
+}
+textarea {
+  width: 100%;
+  height: auto;
+  padding: var(--sp-3);
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+input[type="color"] {
+  width: 32px;
+  height: var(--h-input);
+  padding: 2px;
+  border: 1px solid var(--border-c);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+}
+/* Icon-only "Auto" box in tight keyframe rows: keep clear of its neighbours. */
+.auto-toggle.compact {
+  margin: 0 5px;
+}
+input.hex {
+  width: 92px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  text-transform: lowercase;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  gap: var(--sp-3);
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+.toggle.small {
+  font-size: var(--fs-sm);
+}
+.toggle input {
+  accent-color: var(--text-1);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  background: var(--muted-bg);
+  border: 1px solid var(--border-c);
+  border-radius: var(--r-md);
+  padding: 3px;
+}
+.seg {
+  flex: 1 1 auto;
+  height: 26px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-sm);
+  border: 0;
+  background: transparent;
+  color: var(--text-1);
+  opacity: 0.72;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.seg:hover,
+.seg.active {
+  opacity: 1;
+}
+.seg.active {
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tracks */
+.track {
+  border: 1px solid var(--border-c);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  box-shadow: var(--shadow-sm);
+}
+.track-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 26px;
+}
+.track-head strong {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.keyframes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+.keyframe-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+.keyframe-row .field {
+  flex: 1;
+  grid-template-columns: 62px 1fr;
+}
+.keyframe-row .field-label {
+  line-height: 1.2;
+}
+.timeline {
+  position: relative;
+  height: 22px;
+  margin: 2px 6px 6px;
+  border-bottom: 2px solid var(--border-2);
+}
+/* Springs ignore keyframe positions: dim the strip, but keep its labels readable. */
+.timeline.muted {
+  border-bottom-color: var(--border-c);
+}
+.timeline.muted .tl-dot {
+  background: var(--text-3);
+}
+.tl-dot {
+  position: absolute;
+  top: 100%;
+  translate: -50% -50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-1);
+  border: 2px solid var(--surface);
+  box-sizing: content-box;
+}
+.tl-dot i {
+  position: absolute;
+  bottom: 11px;
+  left: 50%;
+  translate: -50% 0;
+  font: 10px var(--font-mono);
+  font-style: normal;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.at-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.at-wrap input.at {
+  width: 46px;
+  height: 26px;
+  padding: 0 var(--sp-1);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+.at-wrap input.at:disabled {
+  opacity: 0.5;
+}
+.add-prop {
+  border-style: dashed;
+  color: var(--text-2);
+  box-shadow: none;
+}
+.bezier-preview {
+  display: flex;
+  justify-content: center;
+  color: var(--text-2);
+}

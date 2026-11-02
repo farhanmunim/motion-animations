@@ -1,9 +1,9 @@
-import { createStore, clone, DEFAULT_STATE } from "./state.js";
-import { renderPreview } from "./preview.js";
-import { renderLibrary, renderDesign, renderCode, copy, isDirty } from "./ui.js";
-import { generateVanilla } from "./codegen.js";
-import { merge } from "./state.js";
-import { META_TARGETS, routeValues, jsonLd } from "./seo.js";
+import { createStore, clone, DEFAULT_STATE } from "./core/state.js";
+import { renderPreview } from "./core/preview.js";
+import { renderLibrary, renderDesign, renderCode, copy, isDirty } from "./ui/ui.js";
+import { generateVanilla } from "./core/codegen.js";
+import { merge } from "./core/state.js";
+import { META_TARGETS, routeValues, jsonLd } from "./core/seo.js";
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -156,7 +156,7 @@ function setMode(mode) {
     b.setAttribute("aria-pressed", on ? "true" : "false");
   }
   if (mode === "timeline" && !timelineCtl) {
-    import("./v2/index.js").then(({ mountTimeline }) => {
+    import("./timeline/index.js").then(({ mountTimeline }) => {
       if (timelineCtl || document.body.dataset.mode !== "timeline") return;
       timelineCtl = mountTimeline({
         library: $("#t-library"),

@@ -1,7 +1,7 @@
 /**
  * Timeline mode store. Separate from Quick mode so the two never interfere.
  */
-import { merge, clone } from "../state.js";
+import { merge, clone } from "../core/state.js";
 
 export const DEFAULT_T = {
   name: "Hero reveal",

@@ -3,7 +3,7 @@
  * preview and the code exporter use these so what you see is what you export.
  */
 import { motionKey, toMotionValue, resolveEase } from "./props.js";
-import { getComponent, isComponent } from "./components.js";
+import { getComponent, isComponent } from "../library/components.js";
 
 /** Tracks that belong to a part (undefined part = the element itself). */
 function tracksFor(state, part) {

@@ -1,0 +1,41 @@
+/* ---------- Modal ---------- */
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6);
+  z-index: 50;
+  backdrop-filter: blur(2px);
+}
+.app-modal {
+  width: min(880px, 100%);
+  max-height: 90vh;
+  background: var(--surface);
+  border: 1px solid var(--border-c);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+.app-modal.narrow {
+  width: min(460px, 100%);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--h-panel-hd);
+  padding: 0 var(--sp-6);
+  border-bottom: 1px solid var(--border-c);
+}
+.modal-head h2 {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+.modal-body {
+  padding: var(--sp-2) var(--sp-6) var(--sp-7);
+  overflow: auto;
+}

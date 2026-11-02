@@ -8,8 +8,8 @@
  *
  * Both the preview and the exporter use this.
  */
-import { motionKey, toMotionValue, resolveEase } from "../props.js";
-import { Raw } from "../compile.js";
+import { motionKey, toMotionValue, resolveEase } from "../core/props.js";
+import { Raw } from "../core/compile.js";
 import { elementSelector, isMultiElement } from "./scenes.js";
 
 const round = (n) => Math.round(n * 1000) / 1000;

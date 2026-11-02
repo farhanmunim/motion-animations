@@ -1,0 +1,111 @@
+/* =====================================================================
+   Motion Studio design system
+   Benchmarked against app-blueprint.farhan.app: zinc neutrals in HSL,
+   a black / white primary, Geist type at 13px, 32px controls, hairline
+   borders, uppercase 11px section labels, and a dotted stage.
+   ===================================================================== */
+
+:root {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* shadcn-style HSL tokens (light) */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --ring: 240 5% 64.9%;
+
+  --bg: hsl(var(--background));
+  --surface: hsl(var(--card));
+  --muted-bg: hsl(var(--muted));
+  --border-c: hsl(var(--border));
+  --border-2: hsl(240 5.9% 84%);
+  --text-1: hsl(var(--foreground));
+  --text-2: hsl(var(--muted-foreground));
+  --text-3: hsl(240 4% 46%);
+  --primary-c: hsl(var(--primary));
+  --primary-fg: hsl(var(--primary-foreground));
+  --overlay: hsl(240 10% 3.9% / 0.45);
+  --stage-dot: hsl(240 6% 86%);
+  --code-bg: hsl(240 10% 3.9%);
+  --code-fg: hsl(0 0% 96%);
+
+  /* accents (used for demo content, badges and the curve preview) */
+  --accent: #7c3aed;
+  --accent-2: #ec4899;
+  --violet-bg: hsl(262 85% 96%);
+  --violet-bd: hsl(262 75% 82%);
+  --violet-tx: hsl(262 70% 46%);
+  --green-tx: hsl(142 65% 30%);
+  --danger: hsl(0 72% 51%);
+
+  /* aliases kept for older rules and inline SVG */
+  --text: var(--text-1);
+
+  /* sizes */
+  --panel-w: 264px;
+  --right-w: 340px;
+  --topbar-h: 52px;
+  --footer-h: 32px;
+  --mobile-nav-h: 64px;
+  --h-btn: 32px;
+  --h-btn-sm: 26px;
+  --h-input: 32px;
+  --h-tab: 36px;
+  --h-panel-hd: 44px;
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 12px;
+  --sp-6: 16px;
+  --sp-7: 20px;
+  --radius: 0.5rem;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 12px;
+  --r-pill: 999px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 14px;
+  --fs-xl: 15px;
+  --shadow-sm: 0 1px 2px 0 hsl(240 10% 3.9% / 0.05);
+  --shadow: 0 1px 3px 0 hsl(240 10% 3.9% / 0.08), 0 1px 2px -1px hsl(240 10% 3.9% / 0.06);
+  --shadow-md: 0 4px 6px -1px hsl(240 10% 3.9% / 0.08), 0 2px 4px -2px hsl(240 10% 3.9% / 0.05);
+  --shadow-lg: 0 10px 15px -3px hsl(240 10% 3.9% / 0.1), 0 4px 6px -4px hsl(240 10% 3.9% / 0.06);
+  --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --border: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+  --border-2: hsl(240 3.7% 25%);
+  --text-3: hsl(240 5% 62%);
+  --overlay: hsl(0 0% 0% / 0.6);
+  --stage-dot: hsl(240 5% 20%);
+  --code-bg: hsl(240 10% 6.5%);
+  --violet-bg: hsl(262 55% 15%);
+  --violet-bd: hsl(262 50% 30%);
+  --violet-tx: hsl(262 85% 72%);
+  --green-tx: hsl(142 65% 58%);
+  --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+  --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+  --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.4), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
+  --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.5), 0 4px 6px -4px hsl(0 0% 0% / 0.4);
+  color-scheme: dark;
+}

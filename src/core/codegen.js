@@ -9,7 +9,7 @@
  */
 import { stepCount, scrambleChars, Raw, buildKeyframes, buildFromValues, buildFollow, buildPlan, buildTimes, buildTransition, effectiveTrigger, isMulti, needs3d, scrollOffset, staggerCode, targetSelector, autoCloseSeconds } from "./compile.js";
 import { elementMarkup } from "./preview.js";
-import { getComponent, isComponent, componentCss } from "./components.js";
+import { getComponent, isComponent, componentCss } from "../library/components.js";
 
 export const MOTION_VERSION = "13";
 export const CDN_URL = `https://cdn.jsdelivr.net/npm/motion@${MOTION_VERSION}/+esm`;

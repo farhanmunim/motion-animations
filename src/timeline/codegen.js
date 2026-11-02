@@ -1,7 +1,7 @@
 /**
  * Export for Timeline mode: a motion.dev sequence.
  */
-import { js, CDN_URL } from "../codegen.js";
+import { js, CDN_URL } from "../core/codegen.js";
 import { buildSequence, buildInitial, buildSequenceOptions } from "./compile.js";
 import { sceneMarkup, sceneCss } from "./scenes.js";
 

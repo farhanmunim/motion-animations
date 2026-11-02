@@ -1,0 +1,112 @@
+/* ---------- Mobile ---------- */
+.mobile-nav {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --panel-w: 236px;
+    --right-w: 316px;
+  }
+}
+
+@media (max-width: 860px) {
+  :root {
+    --footer-h: 48px;
+  }
+  #app {
+    grid-template-rows: var(--topbar-h) 1fr auto var(--mobile-nav-h);
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  .presets,
+  .inspector,
+  .stage-wrap {
+    display: none;
+    border: 0;
+  }
+  body[data-view="presets"] .presets,
+  body[data-view="design"] .inspector,
+  body[data-view="code"] .inspector {
+    display: flex;
+  }
+  body[data-view="stage"] .stage-wrap {
+    display: grid;
+  }
+  .mobile-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border-c);
+    background: var(--surface);
+    padding: 0 var(--sp-3);
+  }
+  .mobile-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 0;
+    background: none;
+    color: var(--text-2);
+    font-weight: 500;
+    font-size: var(--fs-xs);
+  }
+  .mobile-nav button svg {
+    width: 30px;
+    height: 30px;
+    padding: 6px;
+    border-radius: var(--r-md);
+  }
+  .mobile-nav button.active {
+    color: var(--text-1);
+    font-weight: 600;
+  }
+  .mobile-nav button.active svg {
+    background: var(--muted-bg);
+  }
+  .tabs {
+    display: none;
+  }
+  /* The footer line wraps onto a second row instead of being cut, and sits below the bottom nav. */
+  .app-footer {
+    min-height: var(--footer-h);
+    flex-wrap: wrap;
+    gap: 0 var(--sp-4);
+    padding: var(--sp-1) var(--sp-5);
+    row-gap: 0;
+  }
+  .footer-spacer {
+    display: none;
+  }
+  .brand-name {
+    /* Keep the <h1> for assistive tech and search engines; show just the logo. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .brand-sub,
+  #btn-reset,
+  .btn-label {
+    display: none;
+  }
+  #btn-export {
+    width: var(--h-btn);
+    padding: 0;
+  }
+  .topbar {
+    padding: 0 var(--sp-5);
+    min-width: 0;
+  }
+  .topbar-actions {
+    flex: none;
+  }
+  .toast {
+    bottom: calc(var(--mobile-nav-h) + var(--footer-h) + 12px);
+  }
+}

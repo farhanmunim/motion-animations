@@ -2,8 +2,8 @@
  * The single timeline editor: one row per element and property, actions as
  * draggable blocks, a scrubbable playhead, and zoom.
  */
-import { h } from "../ui.js";
-import { PROPS, PROP_GROUPS, propLabel } from "../props.js";
+import { h } from "../ui/ui.js";
+import { PROPS, PROP_GROUPS, propLabel } from "../core/props.js";
 import { buildRows, totalDuration } from "./compile.js";
 import { makeAction } from "./state.js";
 

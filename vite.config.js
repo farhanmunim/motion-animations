@@ -1,9 +1,9 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { defineConfig } from "vite";
-import { headTags, sitemapXml } from "./src/seo.js";
-import { CATEGORIES, primaryCategory } from "./src/categories.js";
-import { PRESETS } from "./src/presets.js";
-import { TIMELINE_PRESETS } from "./src/v2/presets.js";
+import { headTags, sitemapXml } from "./src/core/seo.js";
+import { CATEGORIES, primaryCategory } from "./src/core/categories.js";
+import { PRESETS } from "./src/library/presets.js";
+import { TIMELINE_PRESETS } from "./src/timeline/presets.js";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 

@@ -5,7 +5,7 @@
 import { animate, hover, press, inView, scroll, stagger, interpolate, motionValue, springValue, styleEffect, transformValue } from "motion";
 import { buildPlan, buildTransition, scrollOffset, isMulti, effectiveTrigger, autoCloseSeconds, buildFollow, needs3d, scrambleChars, scrambleRank, stepCount } from "./compile.js";
 import { resolveEase } from "./props.js";
-import { getComponent, isComponent, componentCss } from "./components.js";
+import { getComponent, isComponent, componentCss } from "../library/components.js";
 
 let cleanup = [];
 let activeAnimations = [];

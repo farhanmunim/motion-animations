@@ -1,0 +1,59 @@
+/* ---------- Modes ---------- */
+body[data-mode="timeline"] .q-only {
+  display: none !important;
+}
+body:not([data-mode="timeline"]) .t-only {
+  display: none !important;
+}
+.mode-switch {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--muted-bg);
+  border: 1px solid var(--border-c);
+  border-radius: var(--r-md);
+  margin-right: var(--sp-3);
+}
+.mode {
+  height: 24px;
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  /* Dim the label only: opacity would also dim the tag inside. */
+  color: color-mix(in srgb, var(--text-1) 72%, transparent);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.mode:hover,
+.mode.active {
+  color: var(--text-1);
+}
+.mode.active {
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.mode-tag {
+  font: 600 9px / 1 var(--font-mono);
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: var(--violet-bg);
+  border: 1px solid var(--violet-bd);
+  color: var(--violet-tx);
+}
+body[data-mode="timeline"] .stage-wrap {
+  grid-template-rows: var(--h-panel-hd) minmax(0, 1fr) 232px;
+}
+.t-scene .t-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.t-scene [data-el] {
+  cursor: pointer;
+}

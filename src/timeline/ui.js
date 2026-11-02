@@ -1,12 +1,12 @@
 /**
  * Timeline-mode inspector and library.
  */
-import { h, numberField, selectField, colorField, textField, toggleField, segmented, section } from "../ui.js";
-import { PROPS, PROP_GROUPS, EASINGS, propLabel } from "../props.js";
+import { h, numberField, selectField, colorField, textField, toggleField, segmented, section } from "../ui/ui.js";
+import { PROPS, PROP_GROUPS, EASINGS, propLabel } from "../core/props.js";
 import { SCENES, sceneElements, isMultiElement, elementLabel } from "./scenes.js";
 import { TIMELINE_PRESETS } from "./presets.js";
 import { DEFAULT_T, makeAction } from "./state.js";
-import { merge, clone } from "../state.js";
+import { merge, clone } from "../core/state.js";
 
 const TRIGGERS = [
   { value: "load", label: "On load", hint: "Plays as soon as the page loads." },

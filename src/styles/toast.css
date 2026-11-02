@@ -1,0 +1,22 @@
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--footer-h) + 16px);
+  transform: translate(-50%, 20px);
+  background: var(--primary-c);
+  color: var(--primary-fg);
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--r-pill);
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 100;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
